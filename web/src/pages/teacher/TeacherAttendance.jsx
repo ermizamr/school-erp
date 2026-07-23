@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { getTeacherIdFallback } from '../../utils/demoHelpers';
 import { useToast } from '../../components/Toast';
 import { CheckCircle, XCircle, Clock, CalendarCheck, CheckSquare } from 'lucide-react';
 
@@ -35,8 +36,7 @@ export default function TeacherAttendance() {
 
   async function init() {
     setLoadingInit(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const tid = user?.id;
+    const tid = await getTeacherIdFallback();
     setTeacherId(tid);
 
     if (tid) {

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { ToastProvider } from '../../components/Toast';
 import {
-  LayoutDashboard, CalendarCheck, BarChart2, BookOpen, Megaphone, LogOut, School
+  LayoutDashboard, CalendarCheck, BarChart2, BookOpen, Megaphone, LogOut, School,
+  Users, FileText, ClipboardCheck, GraduationCap, Calendar, MessageSquare, Settings, User
 } from 'lucide-react';
 
 import TeacherDashboard from './TeacherDashboard';
@@ -11,13 +12,33 @@ import TeacherAttendance from './TeacherAttendance';
 import TeacherExams from './TeacherExams';
 import TeacherGradebook from './TeacherGradebook';
 import TeacherNotifications from './TeacherNotifications';
+import TeacherAssignments from './TeacherAssignments';
+import TeacherMessages from './TeacherMessages';
+import TeacherClasses from './TeacherClasses';
+import TeacherStudents from './TeacherStudents';
+import TeacherCalendar from './TeacherCalendar';
+import TeacherLessonPlans from './TeacherLessonPlans';
+import TeacherMaterials from './TeacherMaterials';
+import TeacherReports from './TeacherReports';
+import TeacherParents from './TeacherParents';
+import TeacherSettings from './TeacherSettings';
 
 const NAV_ITEMS = [
   { key: 'overview',      label: 'Dashboard',  icon: LayoutDashboard },
-  { key: 'attendance',    label: 'Attendance', icon: CalendarCheck },
-  { key: 'exams',         label: 'Exams & Grading', icon: BarChart2 },
-  { key: 'gradebook',     label: 'Gradebook',  icon: BookOpen },
-  { key: 'announcements', label: 'Announcements', icon: Megaphone },
+  { key: 'classes',       label: 'My Classes', icon: BookOpen },
+  { key: 'students',      label: 'Students',   icon: Users },
+  { key: 'attendance',    label: 'Attendance', icon: ClipboardCheck },
+  { key: 'gradebook',     label: 'Gradebook',  icon: GraduationCap },
+  { key: 'assignments',   label: 'Assignments',icon: FileText },
+  { key: 'exams',         label: 'Exams',      icon: BarChart2 },
+  { key: 'lesson_plans',  label: 'Lesson Plans',icon: BookOpen },
+  { key: 'materials',     label: 'Teaching Materials', icon: FileText },
+  { key: 'messages',      label: 'Messages',   icon: MessageSquare },
+  { key: 'parents',       label: 'Parents',    icon: Users },
+  { key: 'reports',       label: 'Reports',    icon: BarChart2 },
+  { key: 'calendar',      label: 'Calendar',   icon: Calendar },
+  { key: 'profile',       label: 'Profile',    icon: User },
+  { key: 'settings',      label: 'Settings',   icon: Settings },
 ];
 
 export default function TeacherLayout() {
@@ -32,9 +53,20 @@ export default function TeacherLayout() {
   function renderContent() {
     switch (activeTab) {
       case 'overview':      return <TeacherDashboard setActiveTab={setActiveTab} />;
+      case 'classes':       return <TeacherClasses />;
+      case 'students':      return <TeacherStudents />;
       case 'attendance':    return <TeacherAttendance />;
-      case 'exams':         return <TeacherExams />;
       case 'gradebook':     return <TeacherGradebook />;
+      case 'assignments':   return <TeacherAssignments />;
+      case 'exams':         return <TeacherExams />;
+      case 'lesson_plans':  return <TeacherLessonPlans />;
+      case 'materials':     return <TeacherMaterials />;
+      case 'messages':      return <TeacherMessages />;
+      case 'parents':       return <TeacherParents />;
+      case 'reports':       return <TeacherReports />;
+      case 'calendar':      return <TeacherCalendar />;
+      case 'profile':       return <TeacherSettings />; // map profile to settings for now
+      case 'settings':      return <TeacherSettings />;
       case 'announcements': return <TeacherNotifications />;
       default:              return <TeacherDashboard setActiveTab={setActiveTab} />;
     }

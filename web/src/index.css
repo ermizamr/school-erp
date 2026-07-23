@@ -223,3 +223,91 @@ table tbody tr:hover {
 input:focus, select:focus {
   border-color: var(--primary) !important;
 }
+
+/* Dashboard Modern Layout Classes */
+.flex-row { display: flex; align-items: center; }
+.flex-col { display: flex; flex-direction: column; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-base { font-size: 1rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-muted { color: var(--text-secondary); }
+.w-full { width: 100%; }
+
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 1024px) {
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.timeline-container {
+  position: relative;
+  padding-left: 1.5rem;
+}
+.timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 0.35rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-color);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+.timeline-dot {
+  position: absolute;
+  left: -1.45rem;
+  top: 0.25rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--primary);
+  z-index: 1;
+}
+.timeline-dot.active {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+.hover-card {
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.hover-card:hover {
+  background: var(--bg-surface-hover);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 2px solid var(--bg-surface);
+}

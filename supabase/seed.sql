@@ -91,11 +91,11 @@ INSERT INTO public.enrollments (id, student_id, section_id) VALUES
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000010', 'c0000000-0000-0000-0000-00000000000C')
 ON CONFLICT (id) DO NOTHING;
 
--- 7. Parent Children Link (Parent 1 has s1 and s2, Parent 2 has s4)
-INSERT INTO public.parent_children (id, parent_id, student_id, relationship) VALUES
-(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'father'),
-(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'father'),
-(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000004', 'mother')
+-- 7. Parent Children Link
+INSERT INTO public.parent_student_links (id, parent_id, student_id) VALUES
+(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002'),
+(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000004')
 ON CONFLICT (parent_id, student_id) DO NOTHING;
 
 -- 8. Teacher Assignments
@@ -118,7 +118,7 @@ INSERT INTO public.exams (id, section_id, subject_id, title, date, max_score) VA
 ('12000000-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-00000000000A', 'f0000000-0000-0000-0000-000000000002', 'Physics Final',   CURRENT_DATE + INTERVAL '12 days', 100)
 ON CONFLICT (id) DO NOTHING;
 
--- 10. Exam Results (For Student 1 and 2 in 9A)
+-- 10. Exam Results
 INSERT INTO public.exam_results (id, exam_id, student_id, score, graded_by) VALUES
 -- Student 1 (Good grades)
 (gen_random_uuid(), '12000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 82, 'b0000000-0000-0000-0000-000000000001'),
@@ -136,7 +136,7 @@ INSERT INTO public.exam_results (id, exam_id, student_id, score, graded_by) VALU
 (gen_random_uuid(), '12000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000003', 95, 'b0000000-0000-0000-0000-000000000001')
 ON CONFLICT (exam_id, student_id) DO NOTHING;
 
--- 11. Attendance (Mix of present/absent/late for s1, lots of absent for s2 to trigger risk meter)
+-- 11. Attendance
 INSERT INTO public.attendance (id, student_id, section_id, date, status, recorded_by) VALUES
 -- s1 attendance
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '1 day', 'present', 'b0000000-0000-0000-0000-000000000001'),
@@ -161,10 +161,40 @@ INSERT INTO public.notifications (id, recipient_id, title, message, type, is_rea
 (gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'Staff Meeting', 'All homeroom teachers are required to attend the assembly.', 'general', false, CURRENT_TIMESTAMP - INTERVAL '2 hours')
 ON CONFLICT (id) DO NOTHING;
 
--- 13. Payments (To test the Admin dashboard revenue widgets)
+-- 13. Payments
 INSERT INTO public.payments (id, student_id, amount, payment_date, payment_type, status, academic_year_id) VALUES
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 5000, CURRENT_DATE - INTERVAL '30 days', 'tuition', 'completed', '70000000-0000-0000-0000-000000000000'),
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000002', 5000, CURRENT_DATE - INTERVAL '25 days', 'tuition', 'completed', '70000000-0000-0000-0000-000000000000'),
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 1500, CURRENT_DATE - INTERVAL '10 days', 'registration', 'completed', '70000000-0000-0000-0000-000000000000'),
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 5000, CURRENT_DATE - INTERVAL '5 days', 'tuition', 'pending', '70000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
+
+-- 14. Teacher Dashboard Seed Data
+-- Class Schedules for Teacher 1 (Math)
+INSERT INTO public.class_schedules (id, section_id, subject_id, teacher_id, day_of_week, start_time, end_time, room) VALUES
+(gen_random_uuid(), 'c0000000-0000-0000-0000-00000000000A', 'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', EXTRACT(DOW FROM CURRENT_DATE), '09:00:00', '10:30:00', 'Room 302'),
+(gen_random_uuid(), 'c0000000-0000-0000-0000-00000000000B', 'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', EXTRACT(DOW FROM CURRENT_DATE), '11:00:00', '12:30:00', 'Room 305')
+ON CONFLICT DO NOTHING;
+
+-- Assignments
+INSERT INTO public.assignments (id, section_id, subject_id, teacher_id, title, description, due_date, status) VALUES
+('a1000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-00000000000A', 'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Algebra Equations', 'Solve equations on pg 42', CURRENT_TIMESTAMP + INTERVAL '1 day', 'published'),
+('a1000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-00000000000A', 'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Geometry Practice', 'Draw the shapes', CURRENT_TIMESTAMP - INTERVAL '1 day', 'grading')
+ON CONFLICT DO NOTHING;
+
+-- Messages
+INSERT INTO public.messages (id, sender_id, receiver_id, content, is_read, created_at) VALUES
+(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Regarding Dawits absence yesterday, he had a mild fever.', false, NOW() - INTERVAL '15 minutes')
+ON CONFLICT DO NOTHING;
+
+-- Events
+INSERT INTO public.events (id, title, description, event_date, start_time, end_time, location, type) VALUES
+(gen_random_uuid(), 'Parent-Teacher Conference', 'Discuss student progress', CURRENT_DATE + INTERVAL '2 days', '16:00:00', '18:00:00', 'Main Hall', 'meeting'),
+(gen_random_uuid(), 'Staff Meeting', 'Monthly sync', CURRENT_DATE + INTERVAL '5 days', '15:15:00', '16:15:00', 'Staff Room', 'meeting')
+ON CONFLICT DO NOTHING;
+
+-- Activity Logs
+INSERT INTO public.activity_logs (id, user_id, action, description, created_at) VALUES
+(gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'graded_assignment', 'Graded Algebra Equations', NOW() - INTERVAL '2 hours'),
+(gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'attendance_submitted', 'Submitted Morning Attendance for 9A', NOW() - INTERVAL '4 hours')
+ON CONFLICT DO NOTHING;

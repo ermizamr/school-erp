@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { getTeacherIdFallback } from '../../utils/demoHelpers';
 import { Search } from 'lucide-react';
 
 const GRADE_THRESHOLDS = [
@@ -27,8 +28,7 @@ export default function TeacherGradebook() {
   useEffect(() => { init(); }, []);
 
   async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const tid = user?.id;
+    const tid = await getTeacherIdFallback();
     setTeacherId(tid);
 
     let sectData;

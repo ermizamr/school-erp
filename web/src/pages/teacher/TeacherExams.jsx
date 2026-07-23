@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { getTeacherIdFallback } from '../../utils/demoHelpers';
 import { useToast } from '../../components/Toast';
 import { Plus, X, BarChart2, Award } from 'lucide-react';
 
@@ -66,8 +67,7 @@ export default function TeacherExams() {
 
   async function init() {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const tid = user?.id;
+    const tid = await getTeacherIdFallback();
     setTeacherId(tid);
 
     const [sectRes, subRes, examsRes, asgnRes] = await Promise.all([
