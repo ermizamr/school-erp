@@ -26,6 +26,11 @@ export default function TeacherAssignments() {
   const [form, setForm] = useState({ title: '', description: '', section_id: '', subject_id: '', due_date: '', status: 'draft' });
   const [saving, setSaving] = useState(false);
 
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [demoGrade, setDemoGrade] = useState('');
+
   useEffect(() => {
     loadAssignments();
   }, []);
@@ -138,11 +143,11 @@ export default function TeacherAssignments() {
               </div>
               <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
                 {a.status === 'grading' ? (
-                  <button className="btn w-full flex-row justify-center gap-2" style={{ background: '#f59e0b', color: 'white' }}>
+                  <button className="btn w-full flex-row justify-center gap-2" style={{ background: '#f59e0b', color: 'white' }} onClick={() => { setSelectedAssignment(a); setShowGradeModal(true); }}>
                     <CheckCircle size={16} /> Grade Submissions
                   </button>
                 ) : (
-                  <button className="btn w-full flex-row justify-center gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                  <button className="btn w-full flex-row justify-center gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} onClick={() => { setSelectedAssignment(a); setShowDetailsModal(true); }}>
                     <FileText size={16} /> View Details
                   </button>
                 )}
@@ -208,6 +213,71 @@ export default function TeacherAssignments() {
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Create Assignment'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assignment Details Modal */}
+      {showDetailsModal && selectedAssignment && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '480px', backgroundColor: 'var(--bg-surface)', position: 'relative' }}>
+            <button onClick={() => setShowDetailsModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '0.25rem' }}>{selectedAssignment.title}</h2>
+            <p className="text-sm font-semibold" style={{ color: 'var(--primary)', marginBottom: '1.5rem' }}>
+              {selectedAssignment.subjects?.name} â€¢ {selectedAssignment.sections?.grades?.name} Sec {selectedAssignment.sections?.name}
+            </p>
+            
+            <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+              <h4 className="font-semibold text-sm mb-2">Instructions:</h4>
+              <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{selectedAssignment.description}</p>
+            </div>
+
+            <div className="flex-row justify-between" style={{ alignItems: 'center', padding: '1rem', background: 'rgba(0,0,0,0.05)', borderRadius: '0.5rem' }}>
+               <span className="text-sm font-semibold">Due: {new Date(selectedAssignment.due_date).toLocaleDateString()}</span>
+               <span className={`badge ${selectedAssignment.status === 'grading' ? 'badge-yellow' : selectedAssignment.status === 'published' ? 'badge-green' : 'badge-blue'}`}>
+                 {selectedAssignment.status.toUpperCase()}
+               </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button type="button" className="btn" onClick={() => setShowDetailsModal(false)} style={{ border: '1px solid var(--border-color)' }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grade Submissions Modal */}
+      {showGradeModal && selectedAssignment && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '480px', backgroundColor: 'var(--bg-surface)', position: 'relative' }}>
+            <button onClick={() => setShowGradeModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '0.25rem' }}>Grade: {selectedAssignment.title}</h2>
+            <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>Review student submissions and assign grades.</p>
+            
+            <div style={{ border: '1px solid var(--border-color)', borderRadius: '0.5rem', overflow: 'hidden' }}>
+               <div className="flex-row justify-between" style={{ padding: '0.75rem 1rem', background: 'rgba(0,0,0,0.05)', borderBottom: '1px solid var(--border-color)', fontWeight: 600, fontSize: '0.85rem' }}>
+                  <span>Student</span>
+                  <span>Grade / 100</span>
+               </div>
+               <div className="flex-row justify-between" style={{ padding: '1rem', alignItems: 'center' }}>
+                  <div className="flex-row gap-3" style={{ alignItems: 'center' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>JD</div>
+                    <span className="font-semibold text-sm">John Doe</span>
+                  </div>
+                  <div>
+                    <input type="number" placeholder="--" value={demoGrade} onChange={e => setDemoGrade(e.target.value)} style={{ width: '60px', padding: '0.5rem', borderRadius: '0.25rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)', textAlign: 'center' }} />
+                  </div>
+               </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button type="button" className="btn" onClick={() => setShowGradeModal(false)} style={{ border: '1px solid var(--border-color)' }}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={() => { setShowGradeModal(false); setDemoGrade(''); toast.success('Grades saved successfully!'); }}>Save Grades</button>
+            </div>
           </div>
         </div>
       )}

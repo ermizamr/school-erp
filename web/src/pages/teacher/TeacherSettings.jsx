@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useToast } from '../../components/Toast';
-import { Settings, User, Bell, Shield, Mail, Smartphone, MapPin, Camera, Save, Lock, Monitor, CheckCircle } from 'lucide-react';
+import { Settings, User, Bell, Shield, Mail, Smartphone, MapPin, Camera, Save, Lock, Monitor, CheckCircle, X, QrCode } from 'lucide-react';
 
 const DEMO_TEACHER_ID = 'b0000000-0000-0000-0000-000000000001';
 
@@ -17,6 +17,12 @@ export default function TeacherSettings() {
     address: ''
   });
   const [email, setEmail] = useState('');
+  const [avatar, setAvatar] = useState(null);
+  
+  const fileInputRef = useRef(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -89,6 +95,38 @@ export default function TeacherSettings() {
     { id: 'preferences', label: 'Preferences', icon: Monitor },
   ];
 
+  const handleUploadPicture = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatar(URL.createObjectURL(file));
+      showToast('Profile picture updated temporarily.', 'success');
+    }
+  };
+
+  const handleRemovePicture = () => {
+    setAvatar(null);
+    showToast('Profile picture removed.', 'success');
+  };
+
+  const handleUpdatePassword = (e) => {
+    e.preventDefault();
+    setSimulating(true);
+    setTimeout(() => {
+      setSimulating(false);
+      setShowPasswordModal(false);
+      showToast('Password updated securely.', 'success');
+    }, 1000);
+  };
+
+  const handleEnable2FA = () => {
+    setSimulating(true);
+    setTimeout(() => {
+      setSimulating(false);
+      setShow2FAModal(false);
+      showToast('Two-Factor Authentication enabled!', 'success');
+    }, 1500);
+  };
+
   if (loading) {
     return (
       <div className="flex-col justify-center" style={{ alignItems: 'center', height: '60vh', gap: '1.5rem' }}>
@@ -144,17 +182,18 @@ export default function TeacherSettings() {
 
               <div className="flex-row gap-6" style={{ marginBottom: '2.5rem', alignItems: 'center' }}>
                 <div style={{ position: 'relative' }}>
-                  <div className="avatar" style={{ width: '96px', height: '96px', fontSize: '2.5rem', backgroundColor: 'var(--primary)', color: 'white', border: '4px solid var(--bg-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                    {profile.first_name?.[0] || 'T'}{profile.last_name?.[0] || ''}
+                  <div className="avatar" style={{ width: '96px', height: '96px', fontSize: '2.5rem', backgroundColor: 'var(--primary)', color: 'white', border: '4px solid var(--bg-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+                    {avatar ? <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (profile.first_name?.[0] || 'T') + (profile.last_name?.[0] || '')}
                   </div>
-                  <button className="btn" style={{ position: 'absolute', bottom: 0, right: 0, padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                  <button type="button" className="btn" style={{ position: 'absolute', bottom: 0, right: 0, padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} onClick={() => fileInputRef.current?.click()}>
                     <Camera size={16} />
                   </button>
                 </div>
                 <div>
                   <div className="flex-row gap-3" style={{ marginBottom: '0.5rem' }}>
-                    <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>Upload new picture</button>
-                    <button className="btn" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0.5rem 1rem' }}>Remove</button>
+                    <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleUploadPicture} />
+                    <button type="button" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={() => fileInputRef.current?.click()}>Upload new picture</button>
+                    <button type="button" className="btn" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0.5rem 1rem' }} onClick={handleRemovePicture}>Remove</button>
                   </div>
                   <p className="text-xs text-muted">Recommended size 256x256px. JPG, GIF or PNG up to 2MB.</p>
                 </div>
@@ -222,10 +261,10 @@ export default function TeacherSettings() {
                   <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>Ensure your account is using a long, random password to stay secure.</p>
                   
                   <div className="flex-col gap-4">
-                    <input type="password" placeholder="Current password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
-                    <input type="password" placeholder="New password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
-                    <input type="password" placeholder="Confirm new password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
-                    <button className="btn" style={{ background: 'var(--text-primary)', color: 'var(--bg-color)', alignSelf: 'flex-start', marginTop: '0.5rem' }}>Update Password</button>
+                    <input type="password" required placeholder="Current password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                    <input type="password" required placeholder="New password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                    <input type="password" required placeholder="Confirm new password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                    <button className="btn" style={{ background: 'var(--text-primary)', color: 'var(--bg-color)', alignSelf: 'flex-start', marginTop: '0.5rem' }} onClick={() => setShowPasswordModal(true)}>Update Password</button>
                   </div>
                 </div>
 
@@ -234,7 +273,7 @@ export default function TeacherSettings() {
                     <h3 className="font-semibold flex-row gap-2" style={{ alignItems: 'center' }}><Lock size={16} className="text-primary" /> Two-Factor Authentication</h3>
                     <p className="text-sm text-muted" style={{ marginTop: '0.25rem' }}>Add an extra layer of security to your account.</p>
                   </div>
-                  <button className="btn btn-primary">Enable 2FA</button>
+                  <button className="btn btn-primary" onClick={() => setShow2FAModal(true)}>Enable 2FA</button>
                 </div>
               </div>
             </div>
@@ -315,6 +354,53 @@ export default function TeacherSettings() {
 
         </div>
       </div>
+
+      {/* Password Update Modal */}
+      {showPasswordModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '400px', backgroundColor: 'var(--bg-surface)', position: 'relative' }}>
+            <button onClick={() => setShowPasswordModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '0.5rem' }}>Update Password</h2>
+            <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>Please re-enter your current password to authorize this change.</p>
+            <form onSubmit={handleUpdatePassword} className="flex-col gap-4">
+              <input type="password" required placeholder="Current password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)' }} />
+              <input type="password" required placeholder="New password" className="input" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)' }} />
+              <div className="flex-row justify-end gap-3" style={{ marginTop: '1rem' }}>
+                <button type="button" className="btn" onClick={() => setShowPasswordModal(false)} style={{ border: '1px solid var(--border-color)' }}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={simulating}>{simulating ? 'Updating...' : 'Save Password'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2FA Setup Modal */}
+      {show2FAModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '400px', backgroundColor: 'var(--bg-surface)', position: 'relative', textAlign: 'center' }}>
+            <button onClick={() => setShow2FAModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+            <h2 style={{ marginBottom: '1rem' }}>Enable 2FA</h2>
+            <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>Scan this QR code with your Authenticator app (like Google Authenticator or Authy).</p>
+            
+            <div style={{ margin: '0 auto 2rem auto', width: '200px', height: '200px', background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+              {/* Fake QR Code */}
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <QrCode size={150} color="#0f172a" />
+              </div>
+            </div>
+
+            <div className="flex-row justify-center gap-3">
+              <button type="button" className="btn" onClick={() => setShow2FAModal(false)} style={{ border: '1px solid var(--border-color)' }}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={handleEnable2FA} disabled={simulating}>{simulating ? 'Verifying...' : 'I have scanned it'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

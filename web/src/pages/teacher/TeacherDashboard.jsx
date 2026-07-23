@@ -330,6 +330,7 @@ export default function TeacherDashboard({ setActiveTab }) {
   const [eventsData, setEventsData] = useState([]);
   const [messagesData, setMessagesData] = useState([]);
   const [activityData, setActivityData] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
@@ -481,9 +482,33 @@ export default function TeacherDashboard({ setActiveTab }) {
             <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
             <input type="text" placeholder="Search students, classes (Cmd+K)" style={{ padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '2rem', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '280px', fontSize: '0.875rem', outline: 'none' }} />
           </div>
-          <button className="btn hover-card" style={{ padding: '0.6rem', borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-            <Bell size={20} color="var(--text-primary)" />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button className="btn hover-card" style={{ padding: '0.6rem', borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }} onClick={() => setShowNotifications(!showNotifications)}>
+              <Bell size={20} color="var(--text-primary)" />
+            </button>
+            {showNotifications && (
+              <div className="glass-card" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '320px', zIndex: 50, padding: '1rem' }}>
+                <h3 className="font-bold mb-3" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Notifications</h3>
+                <div className="flex-col gap-3">
+                  <div className="flex-row gap-3" style={{ alignItems: 'flex-start' }}>
+                    <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'rgba(59,130,246,0.1)', color: 'var(--primary)' }}><FileText size={16}/></div>
+                    <div>
+                      <p className="text-sm font-semibold m-0">Assignment due</p>
+                      <p className="text-xs text-muted m-0">Chapter 4 Exercises is due today.</p>
+                    </div>
+                  </div>
+                  <div className="flex-row gap-3" style={{ alignItems: 'flex-start' }}>
+                    <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}><CheckSquare size={16}/></div>
+                    <div>
+                      <p className="text-sm font-semibold m-0">Grading reminder</p>
+                      <p className="text-xs text-muted m-0">You have 12 pending grades for History.</p>
+                    </div>
+                  </div>
+                  <button className="btn" style={{ width: '100%', border: 'none', color: 'var(--primary)', marginTop: '0.5rem' }}>Mark all as read</button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

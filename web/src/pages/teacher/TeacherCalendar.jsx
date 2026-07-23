@@ -19,6 +19,7 @@ export default function TeacherCalendar() {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', event_date: '', start_time: '', end_time: '', location: '', type: 'academic' });
   const [saving, setSaving] = useState(false);
 
@@ -139,7 +140,16 @@ export default function TeacherCalendar() {
               <option>Month View</option>
               <option>Agenda</option>
             </select>
-            <button className="btn hover-card" style={{ padding: '0.5rem 1rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}><Filter size={16}/></button>
+            <div style={{ position: 'relative' }}>
+              <button className="btn hover-card" style={{ padding: '0.5rem 1rem', background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} onClick={() => setShowFilterDropdown(!showFilterDropdown)}><Filter size={16}/></button>
+              {showFilterDropdown && (
+                <div className="glass-card" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', padding: '0.5rem', width: '200px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label className="flex-row gap-2" style={{ alignItems: 'center', fontSize: '0.85rem' }}><input type="checkbox" defaultChecked /> Academic Events</label>
+                  <label className="flex-row gap-2" style={{ alignItems: 'center', fontSize: '0.85rem' }}><input type="checkbox" defaultChecked /> Holidays</label>
+                  <label className="flex-row gap-2" style={{ alignItems: 'center', fontSize: '0.85rem' }}><input type="checkbox" defaultChecked /> Meetings</label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         

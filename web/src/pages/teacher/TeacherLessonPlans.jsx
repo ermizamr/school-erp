@@ -66,10 +66,23 @@ export default function TeacherLessonPlans() {
       setForm({ title: '', content: '', section_id: '', subject_id: '', date: '', status: 'Draft' });
       loadPlans();
     } catch (err) {
-      toast.error(err.message || 'Failed to create plan');
+      toast.error('Failed to create lesson plan');
+      console.error(err);
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleEditPlan(p) {
+    setForm({
+      title: p.title,
+      content: p.content,
+      section_id: p.section_id || '',
+      subject_id: p.subject_id || '',
+      date: p.date,
+      status: p.status
+    });
+    setShowModal(true);
   }
 
   const filteredPlans = plans.filter(p => 
@@ -127,7 +140,7 @@ export default function TeacherLessonPlans() {
               </p>
               <div className="flex-row justify-between" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: 'auto' }}>
                 <span className="text-xs text-muted flex-row gap-1"><FileText size={14}/> {new Date(p.date).toLocaleDateString()}</span>
-                <button className="btn" style={{ background: 'transparent', padding: 0, color: 'var(--primary)' }}>
+                <button className="btn" style={{ background: 'transparent', padding: 0, color: 'var(--primary)' }} onClick={() => handleEditPlan(p)} title="Edit Plan">
                   <ChevronRight size={18}/>
                 </button>
               </div>
@@ -141,14 +154,14 @@ export default function TeacherLessonPlans() {
         </div>
       )}
 
-      {/* Create Plan Modal */}
+      {/* Create / Edit Plan Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: '480px', backgroundColor: 'var(--bg-surface)', position: 'relative' }}>
-            <button onClick={() => setShowModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <button onClick={() => { setShowModal(false); setForm({ title: '', content: '', section_id: '', subject_id: '', date: new Date().toISOString().split('T')[0], status: 'Draft' }); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
               <X size={20} />
             </button>
-            <h2 style={{ marginBottom: '1.5rem' }}>Create Lesson Plan</h2>
+            <h2 style={{ marginBottom: '1.5rem' }}>{form.title ? 'Edit Lesson Plan' : 'Create Lesson Plan'}</h2>
             <form onSubmit={handleCreatePlan} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>Title *</label>
@@ -189,8 +202,8 @@ export default function TeacherLessonPlans() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn" onClick={() => setShowModal(false)} style={{ border: '1px solid var(--border-color)' }}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Create Plan'}</button>
+                <button type="button" className="btn" onClick={() => { setShowModal(false); setForm({ title: '', content: '', section_id: '', subject_id: '', date: new Date().toISOString().split('T')[0], status: 'Draft' }); }} style={{ border: '1px solid var(--border-color)' }}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Plan'}</button>
               </div>
             </form>
           </div>

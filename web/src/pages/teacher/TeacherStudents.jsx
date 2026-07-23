@@ -91,7 +91,7 @@ export default function TeacherStudents() {
               style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} 
             />
           </div>
-          <button className="btn flex-row gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+          <button onClick={() => showToast('Filters menu coming soon', 'info')} className="btn flex-row gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
             <Filter size={18} /> Filters
           </button>
         </div>
@@ -153,7 +153,7 @@ export default function TeacherStudents() {
                     )}
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'right' }}>
-                    <button className="btn flex-row gap-2" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.5rem 0.75rem', fontSize: '0.75rem' }}>
+                    <button onClick={() => showToast('Opening student profile...', 'info')} className="btn flex-row gap-2" style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.5rem 0.75rem', fontSize: '0.75rem' }}>
                       Profile <ExternalLink size={14}/>
                     </button>
                   </td>

@@ -109,10 +109,10 @@ export default function TeacherClasses() {
           <div className="flex-row justify-between" style={{ marginBottom: '1.5rem', alignItems: 'center' }}>
             <h2 className="text-lg font-bold">Class Roster</h2>
             <div className="flex-row gap-2">
-              <button className="btn" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+              <button onClick={() => showToast('Roster exported as CSV', 'success')} className="btn" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
                 Export CSV
               </button>
-              <button className="btn btn-primary flex-row gap-2">
+              <button onClick={() => showToast('Opening attendance tracker...', 'info')} className="btn btn-primary flex-row gap-2">
                 <CheckSquare size={16} /> Take Attendance
               </button>
             </div>
@@ -223,7 +223,7 @@ export default function TeacherClasses() {
                   <div style={{ color: 'var(--primary)', backgroundColor: 'rgba(59,130,246,0.1)', padding: '0.75rem', borderRadius: '0.75rem' }}>
                     <BookOpen size={24} />
                   </div>
-                  <button className="btn" style={{ padding: '0.5rem', background: 'transparent', border: 'none' }}>
+                  <button onClick={() => showToast('Class options menu', 'info')} className="btn" style={{ padding: '0.5rem', background: 'transparent', border: 'none' }}>
                     <MoreVertical size={20} color="var(--text-secondary)" />
                   </button>
                 </div>
@@ -251,7 +251,7 @@ export default function TeacherClasses() {
                   <button onClick={() => handleViewRoster(cls)} className="btn w-full flex-row justify-center gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)' }}>
                     <Users size={16} /> Roster
                   </button>
-                  <button className="btn w-full flex-row justify-center gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)' }}>
+                  <button onClick={() => showToast('Opening attendance tracker...', 'info')} className="btn w-full flex-row justify-center gap-2" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)' }}>
                     <CheckSquare size={16} /> Attend
                   </button>
                 </div>

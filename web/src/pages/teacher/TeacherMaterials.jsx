@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { getTeacherIdFallback } from '../../utils/demoHelpers';
-import { Folder, File, UploadCloud, Search, MoreVertical, Download, X } from 'lucide-react';
+import { Folder, File, UploadCloud, Search, Download, X, Trash } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 
 const DEMO_TEACHER_ID = 'b0000000-0000-0000-0000-000000000001';
@@ -78,6 +78,31 @@ export default function TeacherMaterials() {
     }
   }
 
+  async function handleDelete(id) {
+    if (!confirm('Are you sure you want to delete this material?')) return;
+    try {
+      const { error } = await supabase.from('teaching_materials').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Material deleted.');
+      loadMaterials();
+    } catch (err) {
+      toast.error('Failed to delete material.');
+    }
+  }
+
+  function handleDownload(m) {
+    // Generate a simulated file download
+    const content = `Mock content for file: ${m.name}\\nType: ${m.file_type}\\nSize: ${formatBytes(m.size_bytes)}`;
+    const encodedUri = encodeURI("data:text/plain;charset=utf-8," + content);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", m.name);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Downloading ${m.name}...`);
+  }
+
   function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -142,8 +167,8 @@ export default function TeacherMaterials() {
                   <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>{formatBytes(m.size_bytes)}</td>
                   <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>{new Date(m.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '1rem', textAlign: 'right' }}>
-                    <button className="btn" style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><Download size={16}/></button>
-                    <button className="btn" style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><MoreVertical size={16}/></button>
+                    <button className="btn" style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }} onClick={() => handleDownload(m)} title="Download"><Download size={16}/></button>
+                    <button className="btn" style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDelete(m.id)} title="Delete"><Trash size={16}/></button>
                   </td>
                 </tr>
               ))
