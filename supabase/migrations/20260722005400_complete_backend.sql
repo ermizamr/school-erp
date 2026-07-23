@@ -1,3 +1,14 @@
+
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT role::text FROM public.profiles WHERE id = auth.uid();
+$$;
+
 -- 1. Create Missing Tables
 
 CREATE TYPE payment_type AS ENUM ('tuition', 'registration', 'other');
@@ -64,37 +75,37 @@ ALTER TABLE public.parent_student_links ENABLE ROW LEVEL SECURITY;
 -- 3. RLS Policies
 
 -- profiles
-CREATE POLICY "Admin full access profiles" ON public.profiles FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access profiles" ON public.profiles FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Users read own profile" ON public.profiles FOR SELECT USING (id = auth.uid());
 CREATE POLICY "Teachers read students in their sections" ON public.profiles FOR SELECT USING (
-  auth.jwt() ->> 'role' = 'teacher' AND 
+  public.get_my_role() = 'teacher' AND 
   id IN (SELECT student_id FROM enrollments e JOIN teacher_assignments ta ON e.section_id = ta.section_id WHERE ta.teacher_id = auth.uid())
 );
 CREATE POLICY "Parents read their children" ON public.profiles FOR SELECT USING (
-  auth.jwt() ->> 'role' = 'parent' AND 
+  public.get_my_role() = 'parent' AND 
   id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
 );
 
 -- academic_years
-CREATE POLICY "Admin full access academic_years" ON public.academic_years FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access academic_years" ON public.academic_years FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "All users read academic_years" ON public.academic_years FOR SELECT USING (true);
 
 -- grades
-CREATE POLICY "Admin full access grades" ON public.grades FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access grades" ON public.grades FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "All users read grades" ON public.grades FOR SELECT USING (true);
 
 -- sections
-CREATE POLICY "Admin full access sections" ON public.sections FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access sections" ON public.sections FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "All users read sections" ON public.sections FOR SELECT USING (true);
 
 -- subjects
-CREATE POLICY "Admin full access subjects" ON public.subjects FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access subjects" ON public.subjects FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "All users read subjects" ON public.subjects FOR SELECT USING (true);
 
 -- enrollments
-CREATE POLICY "Admin full access enrollments" ON public.enrollments FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access enrollments" ON public.enrollments FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Teachers read enrollments" ON public.enrollments FOR SELECT USING (
-  auth.jwt() ->> 'role' = 'teacher' AND 
+  public.get_my_role() = 'teacher' AND 
   section_id IN (SELECT section_id FROM teacher_assignments WHERE teacher_id = auth.uid())
 );
 CREATE POLICY "Students read own enrollments" ON public.enrollments FOR SELECT USING (
@@ -105,13 +116,13 @@ CREATE POLICY "Parents read children enrollments" ON public.enrollments FOR SELE
 );
 
 -- teacher_assignments
-CREATE POLICY "Admin full access teacher_assignments" ON public.teacher_assignments FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access teacher_assignments" ON public.teacher_assignments FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "All users read teacher_assignments" ON public.teacher_assignments FOR SELECT USING (true);
 
 -- attendance
-CREATE POLICY "Admin full access attendance" ON public.attendance FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access attendance" ON public.attendance FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Teachers manage attendance for their sections" ON public.attendance FOR ALL USING (
-  auth.jwt() ->> 'role' = 'teacher' AND 
+  public.get_my_role() = 'teacher' AND 
   section_id IN (SELECT section_id FROM teacher_assignments WHERE teacher_id = auth.uid())
 );
 CREATE POLICY "Students read own attendance" ON public.attendance FOR SELECT USING (
@@ -122,9 +133,9 @@ CREATE POLICY "Parents read children attendance" ON public.attendance FOR SELECT
 );
 
 -- exams
-CREATE POLICY "Admin full access exams" ON public.exams FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access exams" ON public.exams FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Teachers manage exams for their sections" ON public.exams FOR ALL USING (
-  auth.jwt() ->> 'role' = 'teacher' AND 
+  public.get_my_role() = 'teacher' AND 
   section_id IN (SELECT section_id FROM teacher_assignments WHERE teacher_id = auth.uid())
 );
 CREATE POLICY "Students read own exams" ON public.exams FOR SELECT USING (
@@ -139,9 +150,9 @@ CREATE POLICY "Parents read children exams" ON public.exams FOR SELECT USING (
 );
 
 -- exam_results
-CREATE POLICY "Admin full access exam_results" ON public.exam_results FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access exam_results" ON public.exam_results FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Teachers manage exam_results for their sections" ON public.exam_results FOR ALL USING (
-  auth.jwt() ->> 'role' = 'teacher' AND 
+  public.get_my_role() = 'teacher' AND 
   exam_id IN (
     SELECT ex.id FROM exams ex 
     JOIN teacher_assignments ta ON ex.section_id = ta.section_id AND ex.subject_id = ta.subject_id 
@@ -156,7 +167,7 @@ CREATE POLICY "Parents read children exam_results" ON public.exam_results FOR SE
 );
 
 -- payments
-CREATE POLICY "Admin full access payments" ON public.payments FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access payments" ON public.payments FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Students read own payments" ON public.payments FOR SELECT USING (
   student_id = auth.uid()
 );
@@ -165,13 +176,13 @@ CREATE POLICY "Parents read children payments" ON public.payments FOR SELECT USI
 );
 
 -- notifications
-CREATE POLICY "Admin full access notifications" ON public.notifications FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access notifications" ON public.notifications FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Users access own notifications" ON public.notifications FOR ALL USING (
   recipient_id = auth.uid()
 );
 
 -- promotions
-CREATE POLICY "Admin full access promotions" ON public.promotions FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access promotions" ON public.promotions FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Students read own promotions" ON public.promotions FOR SELECT USING (
   student_id = auth.uid()
 );
@@ -180,7 +191,7 @@ CREATE POLICY "Parents read children promotions" ON public.promotions FOR SELECT
 );
 
 -- parent_student_links
-CREATE POLICY "Admin full access parent_student_links" ON public.parent_student_links FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Admin full access parent_student_links" ON public.parent_student_links FOR ALL USING (public.get_my_role() = 'admin');
 CREATE POLICY "Parents read own links" ON public.parent_student_links FOR SELECT USING (
   parent_id = auth.uid()
 );
@@ -212,25 +223,4 @@ CREATE INDEX idx_attendance_date ON public.attendance(date);
 CREATE INDEX idx_enrollments_section ON public.enrollments(section_id);
 CREATE INDEX idx_exam_results_exam ON public.exam_results(exam_id);
 
--- 7. Seed Data
-INSERT INTO public.academic_years (name, start_date, end_date, is_active)
-VALUES ('2018 E.C.', '2025-09-11', '2026-07-10', true);
 
-INSERT INTO public.grades (name, level) VALUES
-('Grade 1', 1), ('Grade 2', 2), ('Grade 3', 3), ('Grade 4', 4), ('Grade 5', 5), ('Grade 6', 6),
-('Grade 7', 7), ('Grade 8', 8), ('Grade 9', 9), ('Grade 10', 10), ('Grade 11', 11), ('Grade 12', 12);
-
-DO $$
-DECLARE
-  ay_id UUID;
-  g_id UUID;
-BEGIN
-  SELECT id INTO ay_id FROM public.academic_years WHERE name = '2018 E.C.' LIMIT 1;
-  FOR g_id IN SELECT id FROM public.grades LOOP
-    INSERT INTO public.sections (grade_id, name, academic_year_id) VALUES (g_id, 'A', ay_id), (g_id, 'B', ay_id);
-  END LOOP;
-END $$;
-
-INSERT INTO public.subjects (name) VALUES
-('Mathematics'), ('English'), ('Amharic'), ('Physics'), ('Chemistry'), 
-('Biology'), ('History'), ('Geography'), ('Civics'), ('ICT');

@@ -35,7 +35,7 @@ export default function Notifications() {
       const data = await api.getNotifications(uid);
       setNotifications(data || []);
     } catch (err) {
-      toast({ title: 'Error', message: 'Failed to load notifications', type: 'error' });
+      toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,7 @@ export default function Notifications() {
       await api.markNotificationRead(id);
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (err) {
-      toast({ title: 'Error', message: 'Failed to mark as read', type: 'error' });
+      toast.error('Failed to mark as read');
     }
   }
 

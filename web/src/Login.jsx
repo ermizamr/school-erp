@@ -18,14 +18,35 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleDemoLogin = async (demoEmail, roleRoute) => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: demoEmail, password: 'password123' });
+    setLoading(false);
+    if (error) {
+      toast.error('Demo login failed. Did you run supabase db reset?');
+      navigate(roleRoute); // Fallback to anonymous mode if DB isn't seeded
+    } else {
+      toast.success(`Signed in as Demo ${roleRoute.replace('/', '') || 'Admin'}`);
+      navigate(roleRoute);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      const user = data.user;
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      
       toast.success('Login successful!');
-      navigate('/dashboard');
+      if (profile?.role === 'admin') navigate('/dashboard');
+      else if (profile?.role === 'student') navigate('/student');
+      else if (profile?.role === 'teacher') navigate('/teacher');
+      else if (profile?.role === 'parent') navigate('/parent');
+      else navigate('/dashboard'); // fallback
     } catch (error) {
       toast.error(error.message || 'Failed to login');
     } finally {
@@ -61,22 +82,38 @@ export default function Login() {
             {loading ? 'Signing in...' : <><LogIn size={20} /> Sign In</>}
           </button>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
             <button 
               type="button" 
-              onClick={() => { toast.success('Signed in as Demo Administrator'); navigate('/dashboard'); }} 
+              onClick={() => handleDemoLogin('admin@demo.com', '/dashboard')} 
               className="btn" 
-              style={{ padding: '0.65rem', backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', color: '#10B981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              style={{ padding: '0.6rem', backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', color: '#10B981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
             >
-              🛡️ Admin Demo
+              🛡️ Admin
             </button>
             <button 
               type="button" 
-              onClick={() => { toast.success('Signed in as Demo Teacher'); navigate('/teacher'); }} 
+              onClick={() => handleDemoLogin('teacher@demo.com', '/teacher')} 
               className="btn" 
-              style={{ padding: '0.65rem', backgroundColor: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              style={{ padding: '0.6rem', backgroundColor: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
             >
-              👨‍🏫 Teacher Demo
+              👨‍🏫 Teacher
+            </button>
+            <button 
+              type="button" 
+              onClick={() => handleDemoLogin('student@demo.com', '/student')} 
+              className="btn" 
+              style={{ padding: '0.6rem', backgroundColor: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+            >
+              🎓 Student
+            </button>
+            <button 
+              type="button" 
+              onClick={() => handleDemoLogin('parent@demo.com', '/parent')} 
+              className="btn" 
+              style={{ padding: '0.6rem', backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}
+            >
+              👨‍👩‍👧 Parent
             </button>
           </div>
         </form>

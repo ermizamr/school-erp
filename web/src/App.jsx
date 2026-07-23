@@ -11,6 +11,8 @@ import Exams from './pages/Exams';
 import Payments from './pages/Payments';
 import Notifications from './pages/Notifications';
 import TeacherLayout from './pages/teacher/TeacherLayout';
+import StudentLayout from './pages/student/StudentLayout';
+import ParentLayout  from './pages/parent/ParentLayout';
 import {
   LayoutDashboard, Users, BookOpen, CalendarCheck,
   FileText, CreditCard, Bell, LogOut, School
@@ -82,6 +84,8 @@ export default function App() {
             <Route path="notifications" element={<Notifications />} />
           </Route>
           <Route path="/teacher/*" element={<TeacherLayout />} />
+          <Route path="/student/*" element={<StudentLayout />} />
+          <Route path="/parent/*"  element={<ParentLayout  />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
