@@ -1,0 +1,9 @@
+-- Migration: 20260724080000_fix_parent_grades_rls.sql
+--
+-- SUPERSEDED. This migration originally patched exam_results and exams RLS
+-- policies to cover the parent_children table (which the seed and UI use)
+-- in addition to the now-removed parent_student_links table.
+--
+-- As of the complete_backend.sql correction all RLS policies for parent data
+-- access already reference parent_children directly. This file is kept as a
+-- no-op so the migration history stays intact.

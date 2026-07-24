@@ -20,14 +20,51 @@ export default function Login() {
 
   const handleDemoLogin = async (demoEmail, roleRoute) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: demoEmail, password: 'password123' });
-    setLoading(false);
-    if (error) {
-      toast.error('Demo login failed. Did you run supabase db reset?');
-      navigate(roleRoute); // Fallback to anonymous mode if DB isn't seeded
-    } else {
-      toast.success(`Signed in as Demo ${roleRoute.replace('/', '') || 'Admin'}`);
+    try {
+      // Attempt sign in with specified demo credentials
+      let { data, error } = await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: 'password123'
+      });
+
+      // If primary email fails, try fallback emails for that role
+      if (error || !data?.user) {
+        const fallbacksMap = {
+          '/parent': ['parent@demo.com', 'parent2@demo.com'],
+          '/teacher': ['teacher@demo.com', 'science@demo.com', 'arts@demo.com'],
+          '/student': ['student@demo.com', 'student2@demo.com'],
+          '/dashboard': ['admin@demo.com']
+        };
+
+        const list = fallbacksMap[roleRoute] || [];
+        for (const altEmail of list) {
+          if (altEmail === demoEmail) continue;
+          const altRes = await supabase.auth.signInWithPassword({
+            email: altEmail,
+            password: 'password123'
+          });
+          if (!altRes.error && altRes.data?.user) {
+            data = altRes.data;
+            error = null;
+            break;
+          }
+        }
+      }
+
+      if (error || !data?.user) {
+        toast.error('Demo authentication failed. Please verify Supabase Auth seed data.');
+        navigate(roleRoute); // Fallback navigation
+      } else {
+        const roleName = roleRoute.replace('/', '') || 'Admin';
+        toast.success(`Signed in as Demo ${roleName.charAt(0).toUpperCase() + roleName.slice(1)}!`);
+        navigate(roleRoute);
+      }
+    } catch (err) {
+      console.error('handleDemoLogin error:', err);
+      toast.error('Failed to sign in via demo button.');
       navigate(roleRoute);
+    } finally {
+      setLoading(false);
     }
   };
 

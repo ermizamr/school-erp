@@ -153,20 +153,23 @@ INSERT INTO public.attendance (id, student_id, section_id, date, status, recorde
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '6 days', 'excused', 'b0000000-0000-0000-0000-000000000001')
 ON CONFLICT (id) DO NOTHING;
 
--- 12. Notifications
+-- 12. Notifications & School Announcements
 INSERT INTO public.notifications (id, recipient_id, title, message, type, is_read, created_at) VALUES
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 'Welcome to EthioSchool', 'We are glad to have you back for the new academic year.', 'general', false, CURRENT_TIMESTAMP - INTERVAL '5 days'),
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 'Math Exam Graded', 'Your Math Mid-term 2 has been graded. Excellent work.', 'grade', false, CURRENT_TIMESTAMP - INTERVAL '2 days'),
 (gen_random_uuid(), 'd0000000-0000-0000-0000-000000000002', 'Attendance Warning', 'You have missed 3 classes this week. Please contact the office.', 'attendance', false, CURRENT_TIMESTAMP - INTERVAL '1 day'),
-(gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'Staff Meeting', 'All homeroom teachers are required to attend the assembly.', 'general', false, CURRENT_TIMESTAMP - INTERVAL '2 hours')
+(gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'Staff Meeting', 'All homeroom teachers are required to attend the assembly.', 'general', false, CURRENT_TIMESTAMP - INTERVAL '2 hours'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', '📢 Annual Science Fair & Cultural Exhibition', 'EthioSchool will host its annual STEM & Science Fair this Friday. Parents are cordially invited to attend project showcases starting at 9:00 AM.', 'announcement', false, CURRENT_TIMESTAMP - INTERVAL '1 day'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', '📌 Term 1 Mid-Semester Parent-Teacher Assembly', 'Mandatory general assembly for all parents on Saturday at 10:00 AM in the Main Auditorium to discuss academic milestones and curriculum updates.', 'event', false, CURRENT_TIMESTAMP - INTERVAL '3 days'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', '💡 Quarter 2 Tuition Fee Submission Notice', 'Quarter 2 tuition fee payments are due by the end of this month. Please upload your payment bank receipts via the Payments section.', 'finance', false, CURRENT_TIMESTAMP - INTERVAL '4 days')
 ON CONFLICT (id) DO NOTHING;
 
--- 13. Payments
-INSERT INTO public.payments (id, student_id, amount, payment_date, payment_type, status, academic_year_id) VALUES
-(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 5000, CURRENT_DATE - INTERVAL '30 days', 'tuition', 'completed', '70000000-0000-0000-0000-000000000000'),
-(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000002', 5000, CURRENT_DATE - INTERVAL '25 days', 'tuition', 'completed', '70000000-0000-0000-0000-000000000000'),
-(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 1500, CURRENT_DATE - INTERVAL '10 days', 'registration', 'completed', '70000000-0000-0000-0000-000000000000'),
-(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 5000, CURRENT_DATE - INTERVAL '5 days', 'tuition', 'pending', '70000000-0000-0000-0000-000000000000')
+-- 13. Payments (To test the Admin dashboard revenue widgets)
+INSERT INTO public.payments (id, student_id, amount, payment_date, payment_type, status, academic_year_id, receipt_number) VALUES
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000001', 5000, CURRENT_DATE - INTERVAL '30 days', 'tuition',      'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000002', 5000, CURRENT_DATE - INTERVAL '25 days', 'tuition',      'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-002'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 1500, CURRENT_DATE - INTERVAL '10 days', 'registration', 'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-003'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 5000, CURRENT_DATE - INTERVAL '5 days',  'tuition',      'pending',   '70000000-0000-0000-0000-000000000000', NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- 14. Teacher Dashboard Seed Data
@@ -182,11 +185,6 @@ INSERT INTO public.assignments (id, section_id, subject_id, teacher_id, title, d
 ('a1000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-00000000000A', 'f0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Geometry Practice', 'Draw the shapes', CURRENT_TIMESTAMP - INTERVAL '1 day', 'grading')
 ON CONFLICT DO NOTHING;
 
--- Messages
-INSERT INTO public.messages (id, sender_id, receiver_id, content, is_read, created_at) VALUES
-(gen_random_uuid(), 'c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Regarding Dawits absence yesterday, he had a mild fever.', false, NOW() - INTERVAL '15 minutes')
-ON CONFLICT DO NOTHING;
-
 -- Events
 INSERT INTO public.events (id, title, description, event_date, start_time, end_time, location, type) VALUES
 (gen_random_uuid(), 'Parent-Teacher Conference', 'Discuss student progress', CURRENT_DATE + INTERVAL '2 days', '16:00:00', '18:00:00', 'Main Hall', 'meeting'),
@@ -198,3 +196,53 @@ INSERT INTO public.activity_logs (id, user_id, action, description, created_at) 
 (gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'graded_assignment', 'Graded Algebra Equations', NOW() - INTERVAL '2 hours'),
 (gen_random_uuid(), 'b0000000-0000-0000-0000-000000000001', 'attendance_submitted', 'Submitted Morning Attendance for 9A', NOW() - INTERVAL '4 hours')
 ON CONFLICT DO NOTHING;
+
+-- 15. Additional exam results
+INSERT INTO public.exam_results (id, exam_id, student_id, score, graded_by) VALUES
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000004', 74, 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000004', 78, 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000004', 38, 'b0000000-0000-0000-0000-000000000002'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000004', 83, 'b0000000-0000-0000-0000-000000000002'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000004', 71, 'b0000000-0000-0000-0000-000000000003'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000003', 92, 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000003', 48, 'b0000000-0000-0000-0000-000000000002'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000003', 97, 'b0000000-0000-0000-0000-000000000002'),
+(gen_random_uuid(), '12000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000003', 88, 'b0000000-0000-0000-0000-000000000003')
+ON CONFLICT (exam_id, student_id) DO NOTHING;
+
+-- 16. Extended attendance records
+INSERT INTO public.attendance (id, student_id, section_id, date, status, recorded_by) VALUES
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '1 day',  'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '2 days', 'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '3 days', 'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '4 days', 'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '5 days', 'late',    'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '1 day',  'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '2 days', 'absent',  'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '3 days', 'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '4 days', 'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '5 days', 'present', 'b0000000-0000-0000-0000-000000000001'),
+(gen_random_uuid(), 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-00000000000A', CURRENT_DATE - INTERVAL '6 days', 'late',    'b0000000-0000-0000-0000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
+-- 17. Richer payment history
+INSERT INTO public.payments (id, student_id, amount, payment_date, payment_type, status, academic_year_id, receipt_number) VALUES
+('p1000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 1500, CURRENT_DATE - INTERVAL '60 days', 'registration', 'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-REG-001'),
+('p1000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001',  500, CURRENT_DATE - INTERVAL '3 days',  'other',        'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-OTH-001'),
+('p1000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000002', 1500, CURRENT_DATE - INTERVAL '58 days', 'registration', 'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-REG-002'),
+('p1000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', 5000, CURRENT_DATE - INTERVAL '2 days',  'tuition',      'failed',    '70000000-0000-0000-0000-000000000000', NULL),
+('p1000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000003', 5000, CURRENT_DATE - INTERVAL '28 days', 'tuition',      'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-005'),
+('p1000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000004', 1500, CURRENT_DATE - INTERVAL '55 days', 'registration', 'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-REG-004'),
+('p1000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000004', 5000, CURRENT_DATE - INTERVAL '20 days', 'tuition',      'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-007'),
+('p1000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000005', 5000, CURRENT_DATE - INTERVAL '22 days', 'tuition',      'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-008'),
+('p1000000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000006', 5000, CURRENT_DATE - INTERVAL '21 days', 'tuition',      'pending',   '70000000-0000-0000-0000-000000000000', NULL),
+('p1000000-0000-0000-0000-000000000010', 'd0000000-0000-0000-0000-000000000007', 5000, CURRENT_DATE - INTERVAL '15 days', 'tuition',      'completed', '70000000-0000-0000-0000-000000000000', 'RCP-2024-010')
+ON CONFLICT (id) DO NOTHING;
+
+-- 19. Seed payment submissions for Parent Financial Center
+INSERT INTO public.payment_submissions (id, parent_id, student_id, amount, bank_name, transaction_reference, receipt_url, status, payment_type, created_at) VALUES
+('sub00000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 5000, 'Telebirr', 'TLB-99882310', 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600', 'approved', 'tuition', CURRENT_TIMESTAMP - INTERVAL '15 days'),
+('sub00000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 2500, 'Commercial Bank of Ethiopia (CBE)', 'CBE-44510092', 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600', 'pending',  'tuition', CURRENT_TIMESTAMP - INTERVAL '2 days'),
+('sub00000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 5000, 'Awash Bank', 'AWS-11200488', 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600', 'approved', 'tuition', CURRENT_TIMESTAMP - INTERVAL '10 days'),
+('sub00000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000004', 5000, 'Dashen Bank', 'DSH-77102934', 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600', 'pending',  'tuition', CURRENT_TIMESTAMP - INTERVAL '1 day')
+ON CONFLICT (id) DO NOTHING;

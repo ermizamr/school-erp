@@ -1,138 +1,783 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
-import { Bell, Users, BookOpen, Check, Megaphone } from 'lucide-react';
+import { useToast } from '../../components/Toast';
+import {
+  MessageSquare, Send, Search, User, Check, CheckCheck,
+  ChevronDown, Users, AlertCircle,
+} from 'lucide-react';
 
-const TYPE_CFG = {
-  general:    { label:'General',    color:'#3b82f6', bg:'rgba(59,130,246,0.12)',  icon:Bell     },
-  attendance: { label:'Attendance', color:'#f59e0b', bg:'rgba(245,158,11,0.12)', icon:Users    },
-  grade:      { label:'Grade',      color:'#10B981', bg:'rgba(16,185,129,0.12)',  icon:BookOpen },
-};
+// ─── Shared style tokens ──────────────────────────────────────────────────────
 
-export default function ParentMessages({ child }) {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [filter, setFilter]               = useState('all');
+const PARENT_COLOR  = '#f59e0b';  // amber  — parent role colour
+const TEACHER_COLOR = '#3b82f6';  // blue   — teacher role colour
 
-  useEffect(() => {
-    if (child?.id) load(child.id);
-    else setLoading(false);
-  }, [child]);
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  async function load(studentId) {
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('notifications').select('*')
-        .eq('recipient_id', studentId)
-        .order('created_at', { ascending:false });
-      setNotifications(data || []);
-    } catch(err) { console.error(err); }
-    finally { setLoading(false); }
-  }
+function timeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m    = Math.floor(diff / 60000);
+  if (m < 1)   return 'Just now';
+  if (m < 60)  return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)  return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7)   return `${d}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
 
-  async function markRead(id) {
-    await supabase.from('notifications').update({ is_read:true }).eq('id',id);
-    setNotifications(prev => prev.map(n => n.id===id ? {...n,is_read:true} : n));
-  }
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-  async function markAllRead() {
-    const ids = notifications.filter(n=>!n.is_read).map(n=>n.id);
-    if (!ids.length) return;
-    await supabase.from('notifications').update({ is_read:true }).in('id',ids);
-    setNotifications(prev => prev.map(n => ({...n,is_read:true})));
-  }
+function formatDateDivider(ts) {
+  const d = new Date(ts);
+  const today     = new Date();
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString())     return 'Today';
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+}
 
-  const filtered = filter==='all' ? notifications : notifications.filter(n=>n.type===filter);
-  const unread   = notifications.filter(n=>!n.is_read).length;
+/** Returns true if two timestamps are on different calendar days */
+function isDifferentDay(a, b) {
+  if (!a || !b) return true;
+  return new Date(a).toDateString() !== new Date(b).toDateString();
+}
 
-  function timeAgo(ts) {
-    const diff = Date.now() - new Date(ts).getTime();
-    const m = Math.floor(diff/60000);
-    if (m < 1)  return 'Just now';
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m/60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h/24)}d ago`;
-  }
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-  if (loading) return <div style={{ padding:'2rem', color:'var(--text-secondary)' }}>Loading messages…</div>;
-
-  if (!child?.id) return (
-    <div className="glass-card" style={{ textAlign:'center', padding:'5rem 2rem' }}>
-      <p>Select a child from the sidebar.</p>
+/** Avatar circle with initials */
+function Avatar({ name, color, size = 36 }) {
+  const initials = name
+    ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      backgroundColor: `${color}20`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontWeight: 700, color, fontSize: size * 0.38,
+    }}>
+      {initials}
     </div>
   );
+}
 
+/** Left-panel teacher list item */
+function TeacherListItem({ teacher, isActive, unreadCount, lastMessage, onClick }) {
   return (
-    <div style={{ animation:'fadeSlideIn 0.3s ease-out' }}>
-      {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
-        <div>
-          <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'0.25rem' }}>
-            <h1 style={{ margin:0 }}>Messages for {child.first_name}</h1>
-            {unread > 0 && (
-              <span style={{ backgroundColor:'#ef4444', color:'white', fontSize:'0.72rem', fontWeight:700, padding:'0.2rem 0.55rem', borderRadius:'1rem' }}>{unread} new</span>
-            )}
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+        fontFamily: 'inherit', textAlign: 'left',
+        padding: '0.85rem 1rem',
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
+        backgroundColor: isActive ? 'rgba(59,130,246,0.1)' : 'transparent',
+        borderLeft: isActive ? `3px solid ${TEACHER_COLOR}` : '3px solid transparent',
+        transition: 'all 0.15s',
+      }}
+    >
+      <div style={{ position: 'relative' }}>
+        <Avatar name={`${teacher.first_name} ${teacher.last_name}`} color={TEACHER_COLOR} size={40} />
+        {unreadCount > 0 && (
+          <div style={{
+            position: 'absolute', top: -3, right: -3,
+            width: 17, height: 17, borderRadius: '50%',
+            backgroundColor: '#ef4444', border: '2px solid var(--bg-surface)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '0.55rem', fontWeight: 800, color: 'white',
+          }}>
+            {unreadCount > 9 ? '9+' : unreadCount}
           </div>
-          <p>Teacher announcements and school notices addressed to your child.</p>
-        </div>
-        {unread > 0 && (
-          <button className="btn" onClick={markAllRead} style={{ border:'1px solid var(--border-color)', display:'flex', alignItems:'center', gap:'0.4rem', fontSize:'0.875rem' }}>
-            <Check size={15}/> Mark all read
-          </button>
         )}
       </div>
 
-      {/* Filter tabs */}
-      <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1.5rem', flexWrap:'wrap' }}>
-        {[{ key:'all', label:'All' }, ...Object.entries(TYPE_CFG).map(([k,v])=>({key:k,label:v.label}))].map(({key,label})=>(
-          <button key={key} onClick={()=>setFilter(key)} style={{ padding:'0.4rem 0.9rem', borderRadius:'1rem', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:500, fontSize:'0.85rem', backgroundColor:filter===key?'var(--primary)':'rgba(255,255,255,0.06)', color:filter===key?'white':'var(--text-secondary)', transition:'all 0.2s' }}>
-            {label}
-            {key==='all' && notifications.length>0 && <span style={{ marginLeft:'0.35rem', opacity:0.7 }}>({notifications.length})</span>}
-          </button>
-        ))}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.2rem' }}>
+          <p style={{
+            fontWeight: unreadCount > 0 ? 700 : 500,
+            fontSize: '0.875rem', margin: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            color: isActive ? TEACHER_COLOR : 'var(--text-primary)',
+          }}>
+            {teacher.first_name} {teacher.last_name}
+          </p>
+          {lastMessage && (
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', flexShrink: 0, marginLeft: '0.35rem' }}>
+              {timeAgo(lastMessage.created_at)}
+            </span>
+          )}
+        </div>
+        <p style={{
+          fontSize: '0.78rem', margin: 0,
+          color: unreadCount > 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
+          fontWeight: unreadCount > 0 ? 600 : 400,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {teacher.subjects?.join(', ') || 'Teacher'}
+        </p>
+        {lastMessage && (
+          <p style={{
+            fontSize: '0.75rem', margin: '0.15rem 0 0',
+            color: 'var(--text-secondary)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {lastMessage.content}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/** Single chat bubble */
+function ChatBubble({ message, isMine }) {
+  const color = isMine ? PARENT_COLOR : TEACHER_COLOR;
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: isMine ? 'row-reverse' : 'row',
+      alignItems: 'flex-end', gap: '0.5rem',
+      marginBottom: '0.5rem',
+    }}>
+      <div style={{
+        maxWidth: '72%',
+        padding: '0.65rem 0.9rem',
+        borderRadius: isMine ? '1.1rem 1.1rem 0.2rem 1.1rem' : '1.1rem 1.1rem 1.1rem 0.2rem',
+        backgroundColor: isMine ? `${PARENT_COLOR}18` : 'var(--bg-surface-hover)',
+        border: `1px solid ${isMine ? `${PARENT_COLOR}30` : 'var(--border-color)'}`,
+        position: 'relative',
+      }}>
+        <p style={{
+          margin: 0, fontSize: '0.9rem', lineHeight: 1.55,
+          color: 'var(--text-primary)', wordBreak: 'break-word',
+        }}>
+          {message.content}
+        </p>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.3rem',
+          justifyContent: 'flex-end', marginTop: '0.3rem',
+        }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+            {formatTime(message.created_at)}
+          </span>
+          {isMine && (
+            message.is_read
+              ? <CheckCheck size={11} color={TEACHER_COLOR} />
+              : <Check      size={11} color="var(--text-secondary)" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+/**
+ * ParentMessages
+ *
+ * Props:
+ *   child          — currently selected child { id, first_name, last_name }
+ *   children       — full list of the parent's linked children
+ *   onSelectChild  — callback(child) to switch the selected child
+ */
+export default function ParentMessages({ child, children: allChildren = [], onSelectChild }) {
+  const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Auth state
+  const [parentId,      setParentId]      = useState(null);
+
+  // Teacher list (left panel)
+  const [teachers,      setTeachers]      = useState([]);  // [{ id, first_name, last_name, subjects:[...] }]
+  const [teachersLoading, setTeachersLoading] = useState(true);
+  const [teacherSearch, setTeacherSearch] = useState('');
+  const [activeTeacher, setActiveTeacher] = useState(null);
+
+  // Conversation (right panel)
+  const [messages,      setMessages]      = useState([]);
+  const [msgsLoading,   setMsgsLoading]   = useState(false);
+  const [msgsError,     setMsgsError]     = useState(null);
+  const [unreadMap,     setUnreadMap]     = useState({});  // { teacherId: count }
+  const [lastMsgMap,    setLastMsgMap]    = useState({});  // { teacherId: message }
+
+  // Compose
+  const [draft,         setDraft]         = useState('');
+  const [sending,       setSending]       = useState(false);
+
+  // Refs
+  const channelRef     = useRef(null);   // realtime channel
+  const bottomRef      = useRef(null);   // scroll anchor
+  const textareaRef    = useRef(null);
+
+  // ── On mount: get the logged-in parent's own user id ─────────────────────
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setParentId(user?.id ?? null);
+    });
+  }, []);
+
+  // Auto-select teacher & pre-fill inquiry when navigated from Grade Viewer or Absence Alert
+  useEffect(() => {
+    if (!teachers || teachers.length === 0) return;
+    const teacherIdParam = searchParams.get('teacherId');
+    const subjectIdParam = searchParams.get('subjectId');
+    const inquiryParam   = searchParams.get('inquiry');
+
+    let target = null;
+    if (teacherIdParam) {
+      target = teachers.find(t => t.id === teacherIdParam);
+    }
+    if (!target && subjectIdParam) {
+      target = teachers.find(t => t.subjectIds && t.subjectIds.includes(subjectIdParam));
+    }
+    if (!target && teachers.length > 0) {
+      target = teachers[0];
+    }
+
+    if (target) {
+      openConversation(target);
+    }
+    if (inquiryParam) {
+      setDraft(decodeURIComponent(inquiryParam));
+    }
+  }, [teachers, searchParams]);
+
+  // ── Fetch teachers whenever child changes ─────────────────────────────────
+  useEffect(() => {
+    if (child?.id) {
+      fetchTeachers(child.id);
+      setActiveTeacher(null);
+      setMessages([]);
+    } else {
+      setTeachers([]);
+      setTeachersLoading(false);
+    }
+  }, [child?.id]);
+
+  /**
+   * Loads the unique teachers assigned to the sections in which the child is enrolled.
+   * Also pre-loads unread counts and last messages per teacher for the sidebar.
+   */
+  const fetchTeachers = useCallback(async (studentId) => {
+    setTeachersLoading(true);
+    try {
+      // 1. Get the child's section(s) via enrollments
+      const { data: enrollments, error: enrErr } = await supabase
+        .from('enrollments')
+        .select('section_id')
+        .eq('student_id', studentId);
+      if (enrErr) throw enrErr;
+
+      const sectionIds = (enrollments || []).map(e => e.section_id);
+      if (sectionIds.length === 0) { setTeachers([]); return; }
+
+      // 2. Get all teacher_assignments for those sections
+      const { data: assignments, error: asgErr } = await supabase
+        .from('teacher_assignments')
+        .select('teacher_id, subject_id, subjects(name)')
+        .in('section_id', sectionIds);
+      if (asgErr) throw asgErr;
+
+      // 3. Collect unique teacher ids + their subjects
+      const teacherSubjectMap = {};
+      const teacherSubjectIdsMap = {};
+      (assignments || []).forEach(a => {
+        if (!teacherSubjectMap[a.teacher_id]) teacherSubjectMap[a.teacher_id] = [];
+        if (!teacherSubjectIdsMap[a.teacher_id]) teacherSubjectIdsMap[a.teacher_id] = [];
+        if (a.subjects?.name) teacherSubjectMap[a.teacher_id].push(a.subjects.name);
+        if (a.subject_id) teacherSubjectIdsMap[a.teacher_id].push(a.subject_id);
+      });
+
+      const teacherIds = Object.keys(teacherSubjectMap);
+      if (teacherIds.length === 0) { setTeachers([]); return; }
+
+      // 4. Fetch teacher profiles
+      const { data: profiles, error: profErr } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', teacherIds);
+      if (profErr) throw profErr;
+
+      const enriched = (profiles || []).map(p => ({
+        ...p,
+        subjects: [...new Set(teacherSubjectMap[p.id] || [])],
+        subjectIds: [...new Set(teacherSubjectIdsMap[p.id] || [])],
+      }));
+
+      setTeachers(enriched);
+
+      // 5. Pre-load unread counts + last message per teacher (non-blocking)
+      fetchSidebarMeta(enriched);
+    } catch (err) {
+      console.error('ParentMessages fetchTeachers error', err);
+      toast.error('Failed to load teachers.');
+    } finally {
+      setTeachersLoading(false);
+    }
+  }, [toast]);
+
+  /**
+   * For each teacher, counts unread messages sent TO the parent
+   * and finds the most recent message in either direction.
+   * Runs in parallel for speed.
+   */
+  const fetchSidebarMeta = useCallback(async (teacherList) => {
+    if (!parentId) return; // parentId might not be set yet — will re-run if needed
+    await Promise.all(teacherList.map(async (teacher) => {
+      const [{ count: unread }, { data: recent }] = await Promise.all([
+        supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('sender_id', teacher.id)
+          .eq('receiver_id', parentId)
+          .eq('is_read', false),
+        supabase
+          .from('messages')
+          .select('content, created_at, sender_id')
+          .or(`and(sender_id.eq.${parentId},receiver_id.eq.${teacher.id}),and(sender_id.eq.${teacher.id},receiver_id.eq.${parentId})`)
+          .order('created_at', { ascending: false })
+          .limit(1),
+      ]);
+      setUnreadMap(prev => ({ ...prev, [teacher.id]: unread || 0 }));
+      setLastMsgMap(prev => ({ ...prev, [teacher.id]: recent?.[0] ?? null }));
+    }));
+  }, [parentId]);
+
+  // Re-run sidebar meta once parentId is available
+  useEffect(() => {
+    if (parentId && teachers.length > 0) {
+      fetchSidebarMeta(teachers);
+    }
+  }, [parentId, teachers, fetchSidebarMeta]);
+
+  // ── Open a conversation ──────────────────────────────────────────────────
+  const openConversation = useCallback(async (teacher) => {
+    setActiveTeacher(teacher);
+    setMessages([]);
+    setDraft('');
+    setMsgsError(null);
+
+    // Tear down any previous realtime channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    await loadHistory(teacher.id);
+    subscribeRealtime(teacher.id);
+
+    // Mark all messages from this teacher as read
+    if (parentId) {
+      supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('sender_id', teacher.id)
+        .eq('receiver_id', parentId)
+        .eq('is_read', false)
+        .then(() => {
+          setUnreadMap(prev => ({ ...prev, [teacher.id]: 0 }));
+        });
+    }
+  }, [parentId]);
+
+  // ── Load historical messages ─────────────────────────────────────────────
+  const loadHistory = useCallback(async (teacherId) => {
+    if (!parentId) return;
+    setMsgsLoading(true);
+    setMsgsError(null);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(
+          `and(sender_id.eq.${parentId},receiver_id.eq.${teacherId}),` +
+          `and(sender_id.eq.${teacherId},receiver_id.eq.${parentId})`
+        )
+        .order('created_at', { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (err) {
+      console.error('loadHistory error', err);
+      setMsgsError('Failed to load messages. Please try again.');
+    } finally {
+      setMsgsLoading(false);
+    }
+  }, [parentId]);
+
+  // ── Supabase Realtime subscription ──────────────────────────────────────
+  const subscribeRealtime = useCallback((teacherId) => {
+    if (!parentId) return;
+
+    const channelName = `messages_${parentId}_${teacherId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event:  'INSERT',
+          schema: 'public',
+          table:  'messages',
+          // Postgres filter: messages where the parent is sender or recipient
+          // We receive ALL inserts and filter client-side for safety
+        },
+        (payload) => {
+          const msg = payload.new;
+          const isRelevant =
+            (msg.sender_id === parentId    && msg.receiver_id === teacherId) ||
+            (msg.sender_id === teacherId   && msg.receiver_id === parentId);
+          if (!isRelevant) return;
+
+          setMessages(prev => {
+            // Deduplicate (the optimistic message we inserted will already be present)
+            if (prev.some(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+
+          // If the incoming message is from the teacher, mark it read immediately
+          if (msg.sender_id === teacherId && msg.receiver_id === parentId) {
+            supabase
+              .from('messages')
+              .update({ is_read: true })
+              .eq('id', msg.id);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.debug(`[Realtime] subscribed to ${channelName}`);
+        }
+      });
+
+    channelRef.current = channel;
+  }, [parentId]);
+
+  // ── Cleanup realtime on unmount ──────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, []);
+
+  // ── Scroll to bottom whenever messages change ────────────────────────────
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // ── Send a message ───────────────────────────────────────────────────────
+  const handleSend = useCallback(async (e) => {
+    e?.preventDefault();
+    const content = draft.trim();
+    if (!content || !parentId || !activeTeacher || sending) return;
+
+    setSending(true);
+    setDraft('');
+
+    // Optimistic insert (shown immediately, replaced by realtime event)
+    const optimisticId = `opt_${Date.now()}`;
+    const optimistic = {
+      id:           optimisticId,
+      sender_id:    parentId,
+      receiver_id: activeTeacher.id,
+      student_id:   child?.id ?? null,
+      content,
+      is_read:      false,
+      created_at:   new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimistic]);
+
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id:    parentId,
+          receiver_id: activeTeacher.id,
+          student_id:   child?.id ?? null,
+          content,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Replace the optimistic row with the real one from the DB
+      setMessages(prev =>
+        prev.map(m => m.id === optimisticId ? data : m)
+      );
+
+      // Update sidebar last message
+      setLastMsgMap(prev => ({ ...prev, [activeTeacher.id]: data }));
+
+    } catch (err) {
+      console.error('handleSend error', err);
+      // Roll back the optimistic message and restore the draft
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      setDraft(content);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+      textareaRef.current?.focus();
+    }
+  }, [draft, parentId, activeTeacher, child, sending, toast]);
+
+  // Allow Ctrl/Cmd + Enter to send
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      handleSend();
+    }
+  };
+
+  // ── Derived data ─────────────────────────────────────────────────────────
+  const filteredTeachers = teachers.filter(t =>
+    `${t.first_name} ${t.last_name} ${t.subjects.join(' ')}`
+      .toLowerCase()
+      .includes(teacherSearch.toLowerCase())
+  );
+
+  const totalUnread = Object.values(unreadMap).reduce((a, b) => a + b, 0);
+
+  // ── No child selected ────────────────────────────────────────────────────
+  if (!child?.id) {
+    return (
+      <div className="glass-card" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
+        <MessageSquare size={48} style={{ color: 'var(--text-secondary)', opacity: 0.3, margin: '0 auto 1rem', display: 'block' }} />
+        <h2 style={{ marginBottom: '0.5rem' }}>No child selected</h2>
+        <p>Select a child from the sidebar to start messaging their teachers.</p>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ animation: 'fadeSlideIn 0.3s ease-out', height: 'calc(100vh - 4rem)', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Page header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.2rem' }}>Messages — {child.first_name}</h1>
+          <p style={{ fontSize: '0.875rem' }}>
+            Direct conversations with {child.first_name}'s teachers.
+            {totalUnread > 0 && (
+              <span style={{ marginLeft: '0.6rem', backgroundColor: '#ef4444', color: 'white', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '1rem' }}>
+                {totalUnread} unread
+              </span>
+            )}
+          </p>
+        </div>
       </div>
 
-      {/* List */}
-      {filtered.length === 0 ? (
-        <div className="glass-card" style={{ textAlign:'center', padding:'5rem 2rem' }}>
-          <Megaphone size={48} style={{ color:'var(--text-secondary)', opacity:0.3, margin:'0 auto 1rem', display:'block' }}/>
-          <h2 style={{ fontSize:'1.25rem', marginBottom:'0.5rem' }}>No messages yet</h2>
-          <p>Teacher announcements for {child.first_name} will appear here.</p>
+      {/* Two-column layout */}
+      <div style={{ display: 'flex', flex: 1, gap: '0', overflow: 'hidden', borderRadius: '1rem', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
+
+        {/* ── LEFT PANEL: Teacher list ────────────────────────────────── */}
+        <div style={{ width: '280px', flexShrink: 0, borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* Panel header */}
+          <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: '0.875rem', margin: '0 0 0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Teachers
+            </p>
+            {/* Search */}
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <input
+                type="text"
+                placeholder="Search teachers…"
+                value={teacherSearch}
+                onChange={e => setTeacherSearch(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.45rem 0.75rem 0.45rem 2rem',
+                  border: '1px solid var(--border-color)', borderRadius: '0.5rem',
+                  backgroundColor: 'rgba(15,23,42,0.4)', color: 'white',
+                  fontFamily: 'inherit', fontSize: '0.82rem', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Teacher list */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {teachersLoading ? (
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <div style={{ width: '28px', height: '28px', border: '3px solid var(--border-color)', borderTopColor: TEACHER_COLOR, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 0.75rem' }} />
+                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading…</p>
+              </div>
+            ) : filteredTeachers.length === 0 ? (
+              <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                <User size={32} style={{ color: 'var(--text-secondary)', opacity: 0.3, margin: '0 auto 0.6rem', display: 'block' }} />
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  {teachers.length === 0 ? 'No teachers assigned yet.' : 'No teachers match your search.'}
+                </p>
+              </div>
+            ) : (
+              filteredTeachers.map(teacher => (
+                <TeacherListItem
+                  key={teacher.id}
+                  teacher={teacher}
+                  isActive={activeTeacher?.id === teacher.id}
+                  unreadCount={unreadMap[teacher.id] || 0}
+                  lastMessage={lastMsgMap[teacher.id] || null}
+                  onClick={() => openConversation(teacher)}
+                />
+              ))
+            )}
+          </div>
         </div>
-      ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:'0.65rem' }}>
-          {filtered.map(n=>{
-            const cfg  = TYPE_CFG[n.type] || TYPE_CFG.general;
-            const Icon = cfg.icon;
-            return (
-              <div
-                key={n.id}
-                className="glass-card"
-                onClick={()=>!n.is_read && markRead(n.id)}
-                style={{ padding:'1.1rem 1.35rem', display:'flex', gap:'1rem', alignItems:'flex-start', borderLeft:`3px solid ${n.is_read?'var(--border-color)':cfg.color}`, opacity:n.is_read?0.75:1, cursor:n.is_read?'default':'pointer', transition:'opacity 0.2s', position:'relative' }}
-              >
-                <div style={{ width:'38px', height:'38px', borderRadius:'50%', backgroundColor:n.is_read?'rgba(255,255,255,0.05)':cfg.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <Icon size={17} color={n.is_read?'var(--text-secondary)':cfg.color}/>
+
+        {/* ── RIGHT PANEL: Chat thread ────────────────────────────────── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+
+          {!activeTeacher ? (
+            /* No conversation selected */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem' }}>
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageSquare size={30} color={TEACHER_COLOR} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.4rem' }}>Select a teacher to start chatting</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  Choose from {child.first_name}'s teachers on the left.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Conversation header */}
+              <div style={{ padding: '0.9rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                <Avatar name={`${activeTeacher.first_name} ${activeTeacher.last_name}`} color={TEACHER_COLOR} size={40} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 700, margin: 0, fontSize: '0.95rem' }}>
+                    {activeTeacher.first_name} {activeTeacher.last_name}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {activeTeacher.subjects.join(', ')} · Re: {child.first_name}
+                  </p>
                 </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'0.75rem', marginBottom:'0.3rem' }}>
-                    <h3 style={{ margin:0, fontSize:'0.95rem', fontWeight:n.is_read?500:700 }}>{n.title}</h3>
-                    <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', flexShrink:0 }}>
-                      <span className="badge" style={{ backgroundColor:n.is_read?'rgba(255,255,255,0.05)':cfg.bg, color:n.is_read?'var(--text-secondary)':cfg.color, fontSize:'0.65rem' }}>{cfg.label}</span>
-                      <span style={{ fontSize:'0.75rem', color:'var(--text-secondary)', whiteSpace:'nowrap' }}>{timeAgo(n.created_at)}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(16,185,129,0.1)', color: '#10B981', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  🟢 Live
+                </span>
+              </div>
+
+              {/* Message thread */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column' }}>
+                {msgsLoading ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ width: '32px', height: '32px', border: '3px solid var(--border-color)', borderTopColor: TEACHER_COLOR, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Loading conversation…</p>
+                  </div>
+                ) : msgsError ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.9rem 1.25rem', backgroundColor: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '0.65rem' }}>
+                      <AlertCircle size={18} color="#ef4444" />
+                      <p style={{ color: '#ef4444', margin: 0, fontSize: '0.875rem' }}>{msgsError}</p>
                     </div>
                   </div>
-                  <p style={{ margin:0, fontSize:'0.875rem', color:'var(--text-secondary)', lineHeight:'1.5' }}>{n.message}</p>
-                </div>
-                {!n.is_read && (
-                  <div style={{ position:'absolute', top:'1rem', right:'1rem', width:'8px', height:'8px', borderRadius:'50%', backgroundColor:cfg.color }}/>
+                ) : messages.length === 0 ? (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                    <MessageSquare size={40} style={{ color: 'var(--text-secondary)', opacity: 0.25 }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontWeight: 600, marginBottom: '0.3rem' }}>No messages yet</p>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        Send the first message to {activeTeacher.first_name}.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((msg, idx) => {
+                      const isMine         = msg.sender_id === parentId;
+                      const showDivider    = isDifferentDay(messages[idx - 1]?.created_at, msg.created_at);
+
+                      return (
+                        <React.Fragment key={msg.id}>
+                          {showDivider && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1rem 0 0.75rem' }}>
+                              <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', padding: '0.2rem 0.65rem', backgroundColor: 'var(--bg-surface-hover)', borderRadius: '1rem' }}>
+                                {formatDateDivider(msg.created_at)}
+                              </span>
+                              <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+                            </div>
+                          )}
+                          <ChatBubble message={msg} isMine={isMine} />
+                        </React.Fragment>
+                      );
+                    })}
+                    {/* Scroll anchor */}
+                    <div ref={bottomRef} />
+                  </>
                 )}
               </div>
-            );
-          })}
+
+              {/* Compose bar */}
+              <div style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border-color)', flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'flex-end', gap: '0.65rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <textarea
+                      ref={textareaRef}
+                      rows={1}
+                      placeholder={`Message ${activeTeacher.first_name}… (Ctrl+Enter to send)`}
+                      value={draft}
+                      onChange={e => {
+                        setDraft(e.target.value);
+                        // Auto-grow up to 5 lines
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${Math.min(e.target.scrollHeight, 130)}px`;
+                      }}
+                      onKeyDown={handleKeyDown}
+                      disabled={sending}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        padding: '0.65rem 0.9rem',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '0.75rem',
+                        backgroundColor: 'rgba(15,23,42,0.5)',
+                        color: 'white', fontFamily: 'Outfit, sans-serif',
+                        fontSize: '0.9rem', lineHeight: '1.5',
+                        outline: 'none', resize: 'none',
+                        transition: 'border-color 0.2s',
+                        maxHeight: '130px', overflowY: 'auto',
+                      }}
+                      onFocus={e  => { e.target.style.borderColor = PARENT_COLOR; }}
+                      onBlur={e   => { e.target.style.borderColor = 'var(--border-color)'; }}
+                    />
+                    <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginTop: '0.25rem', textAlign: 'right' }}>
+                      {draft.length}/2000
+                    </p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!draft.trim() || sending || draft.length > 2000}
+                    style={{
+                      width: '42px', height: '42px', borderRadius: '50%', border: 'none',
+                      backgroundColor: draft.trim() && !sending ? PARENT_COLOR : 'var(--bg-surface-hover)',
+                      color: draft.trim() && !sending ? 'white' : 'var(--text-secondary)',
+                      cursor: draft.trim() && !sending ? 'pointer' : 'not-allowed',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.2s', flexShrink: 0, marginBottom: '1.5rem',
+                    }}
+                    title="Send message (Ctrl+Enter)"
+                  >
+                    {sending
+                      ? <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                      : <Send size={16} />
+                    }
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

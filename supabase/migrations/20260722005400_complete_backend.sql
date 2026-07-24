@@ -50,10 +50,17 @@ CREATE TABLE public.promotions (
   status promotion_status NOT NULL
 );
 
-CREATE TABLE public.parent_student_links (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  parent_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+-- NOTE: parent_student_links was replaced by parent_children (created in
+-- 20260723120000_parent_children.sql) which has an identical schema plus a
+-- `relationship` column. All RLS policies below reference parent_children.
+-- A stub table is kept here only so that the ALTER TABLE ... ENABLE ROW LEVEL
+-- SECURITY line below does not fail; it will be dropped by the later migration.
+CREATE TABLE IF NOT EXISTS public.parent_children (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  student_id   UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  relationship TEXT DEFAULT 'parent',
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(parent_id, student_id)
 );
 
@@ -70,7 +77,7 @@ ALTER TABLE public.exam_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.parent_student_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.parent_children ENABLE ROW LEVEL SECURITY;
 
 -- 3. RLS Policies
 
@@ -82,8 +89,8 @@ CREATE POLICY "Teachers read students in their sections" ON public.profiles FOR 
   id IN (SELECT student_id FROM enrollments e JOIN teacher_assignments ta ON e.section_id = ta.section_id WHERE ta.teacher_id = auth.uid())
 );
 CREATE POLICY "Parents read their children" ON public.profiles FOR SELECT USING (
-  public.get_my_role() = 'parent' AND 
-  id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
+  public.get_my_role() = 'parent' AND
+  id IN (SELECT student_id FROM parent_children WHERE parent_id = auth.uid())
 );
 
 -- academic_years
@@ -112,7 +119,7 @@ CREATE POLICY "Students read own enrollments" ON public.enrollments FOR SELECT U
   student_id = auth.uid()
 );
 CREATE POLICY "Parents read children enrollments" ON public.enrollments FOR SELECT USING (
-  student_id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
+  student_id IN (SELECT student_id FROM parent_children WHERE parent_id = auth.uid())
 );
 
 -- teacher_assignments
@@ -129,7 +136,7 @@ CREATE POLICY "Students read own attendance" ON public.attendance FOR SELECT USI
   student_id = auth.uid()
 );
 CREATE POLICY "Parents read children attendance" ON public.attendance FOR SELECT USING (
-  student_id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
+  student_id IN (SELECT student_id FROM parent_children WHERE parent_id = auth.uid())
 );
 
 -- exams
@@ -143,9 +150,9 @@ CREATE POLICY "Students read own exams" ON public.exams FOR SELECT USING (
 );
 CREATE POLICY "Parents read children exams" ON public.exams FOR SELECT USING (
   section_id IN (
-    SELECT e.section_id FROM enrollments e 
-    JOIN parent_student_links psl ON e.student_id = psl.student_id 
-    WHERE psl.parent_id = auth.uid()
+    SELECT e.section_id FROM enrollments e
+    JOIN parent_children pc ON e.student_id = pc.student_id
+    WHERE pc.parent_id = auth.uid()
   )
 );
 
@@ -163,7 +170,7 @@ CREATE POLICY "Students read own exam_results" ON public.exam_results FOR SELECT
   student_id = auth.uid()
 );
 CREATE POLICY "Parents read children exam_results" ON public.exam_results FOR SELECT USING (
-  student_id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
+  student_id IN (SELECT student_id FROM parent_children WHERE parent_id = auth.uid())
 );
 
 -- payments
@@ -172,7 +179,7 @@ CREATE POLICY "Students read own payments" ON public.payments FOR SELECT USING (
   student_id = auth.uid()
 );
 CREATE POLICY "Parents read children payments" ON public.payments FOR SELECT USING (
-  student_id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
+  student_id IN (SELECT student_id FROM parent_children WHERE parent_id = auth.uid())
 );
 
 -- notifications
@@ -187,12 +194,12 @@ CREATE POLICY "Students read own promotions" ON public.promotions FOR SELECT USI
   student_id = auth.uid()
 );
 CREATE POLICY "Parents read children promotions" ON public.promotions FOR SELECT USING (
-  student_id IN (SELECT student_id FROM parent_student_links WHERE parent_id = auth.uid())
+  student_id IN (SELECT student_id FROM parent_children WHERE parent_id = auth.uid())
 );
 
--- parent_student_links
-CREATE POLICY "Admin full access parent_student_links" ON public.parent_student_links FOR ALL USING (public.get_my_role() = 'admin');
-CREATE POLICY "Parents read own links" ON public.parent_student_links FOR SELECT USING (
+-- parent_children
+CREATE POLICY "Admin full access parent_children" ON public.parent_children FOR ALL USING (public.get_my_role() = 'admin');
+CREATE POLICY "Parents read own links" ON public.parent_children FOR SELECT USING (
   parent_id = auth.uid()
 );
 

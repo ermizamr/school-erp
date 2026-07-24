@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Award, TrendingUp, TrendingDown, Minus, BarChart2 } from 'lucide-react';
-import { getLetterGrade, calcGPA } from './StudentHome';
+import { getLetterGrade, calcGPA } from '../../lib/grades';
 
 // Score bar component
 function ScoreBar({ score, max = 100, color }) {
