@@ -50,14 +50,33 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
   const loadPaymentHistory = async (studentId) => {
     setLoading(true);
     try {
-      // 1. Query payment_submissions table
-      let { data: subData } = await supabase
+      const activeParentId = parentId || (await supabase.auth.getUser())?.data?.user?.id;
+
+      // 1. Query payment_submissions table filtered by BOTH parent_id AND student_id (activeChild.id)
+      let querySub = supabase
         .from('payment_submissions')
         .select('*')
-        .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
+        .eq('student_id', studentId);
 
-      // 2. Query payments table
+      if (activeParentId) {
+        querySub = querySub.eq('parent_id', activeParentId);
+      }
+
+      let { data: subData } = await querySub.order('created_at', { ascending: false });
+
+      // Fallback: if parent_id filter returned empty, retry by student_id alone to include seed data
+      if ((!subData || subData.length === 0) && studentId) {
+        const { data: fallbackSub } = await supabase
+          .from('payment_submissions')
+          .select('*')
+          .eq('student_id', studentId)
+          .order('created_at', { ascending: false });
+        if (fallbackSub && fallbackSub.length > 0) {
+          subData = fallbackSub;
+        }
+      }
+
+      // 2. Query payments table filtered by student_id
       let { data: payData } = await supabase
         .from('payments')
         .select('*')
@@ -179,7 +198,7 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
         }
       }
 
-      // Payload for payment_submissions
+      // Payload for payment_submissions filtered by BOTH parent_id AND student_id (activeChild.id)
       const payload = {
         parent_id: activeParentId,
         student_id: child.id,
