@@ -47,12 +47,35 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
     }
   }, [child?.id, parentId]);
 
+  // Helpers for persistent local state fallback across page reloads
+  const getLocalSubmissions = (studentId) => {
+    try {
+      const raw = localStorage.getItem(`parent_submissions_${studentId}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const saveLocalSubmission = (studentId, record) => {
+    try {
+      const existing = getLocalSubmissions(studentId);
+      const updated = [record, ...existing.filter(r => r.ref !== record.ref)];
+      localStorage.setItem(`parent_submissions_${studentId}`, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save submission to localStorage', e);
+    }
+  };
+
   const loadPaymentHistory = async (studentId) => {
     setLoading(true);
     try {
       const activeParentId = parentId || (await supabase.auth.getUser())?.data?.user?.id;
 
-      // 1. Query payment_submissions table filtered by BOTH parent_id AND student_id (activeChild.id)
+      // 1. Get locally submitted pending items for this child
+      const localSubs = getLocalSubmissions(studentId);
+
+      // 2. Query payment_submissions table
       let querySub = supabase
         .from('payment_submissions')
         .select('*')
@@ -64,7 +87,6 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
 
       let { data: subData } = await querySub.order('created_at', { ascending: false });
 
-      // Fallback: if parent_id filter returned empty, retry by student_id alone to include seed data
       if ((!subData || subData.length === 0) && studentId) {
         const { data: fallbackSub } = await supabase
           .from('payment_submissions')
@@ -76,14 +98,14 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
         }
       }
 
-      // 2. Query payments table filtered by student_id
+      // 3. Query payments table
       let { data: payData } = await supabase
         .from('payments')
         .select('*')
         .eq('student_id', studentId)
         .order('payment_date', { ascending: false });
 
-      // Normalize records
+      // Normalize DB records
       const normalizedSub = (subData || []).map(item => ({
         id: item.id,
         date: item.created_at,
@@ -106,15 +128,22 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
         type: item.payment_type ? item.payment_type.toUpperCase() : 'Tuition Fee',
       }));
 
-      // Combine & deduplicate
-      const combined = [...normalizedSub];
+      // Combine local submissions first, then DB submissions, then payments
+      const combined = [...localSubs];
+
+      normalizedSub.forEach(s => {
+        if (!combined.some(c => c.ref === s.ref || c.id === s.id)) {
+          combined.push(s);
+        }
+      });
+
       normalizedPay.forEach(p => {
         if (!combined.some(c => c.ref === p.ref || c.id === p.id)) {
           combined.push(p);
         }
       });
 
-      // Default demo mock if database returns empty for Sara or Dawit
+      // Default seed demo mock if empty
       if (combined.length === 0 && studentId) {
         combined.push({
           id: `demo-${studentId}-1`,
@@ -175,10 +204,8 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
     let uploadedUrl = filePreview;
 
     try {
-      // Resolve active parent ID reliably
       const activeParentId = parentId || (await supabase.auth.getUser())?.data?.user?.id || 'c0000000-0000-0000-0000-000000000001';
 
-      // Storage upload if file attached
       if (receiptFile) {
         const fileExt = receiptFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
@@ -198,7 +225,7 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
         }
       }
 
-      // Payload for payment_submissions filtered by BOTH parent_id AND student_id (activeChild.id)
+      // Payload for payment_submissions
       const payload = {
         parent_id: activeParentId,
         student_id: child.id,
@@ -228,7 +255,7 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
         });
       }
 
-      // Optimistic UI state refresh: immediately add to history table
+      // 1. Create new pending record
       const newPendingRecord = {
         id: inserted?.id || `sub-${Date.now()}`,
         date: new Date().toISOString(),
@@ -238,16 +265,21 @@ export default function ParentPayments({ child, children: allChildren = [] }) {
         status: 'pending',
         receipt_url: uploadedUrl,
         type: 'Tuition Fee',
+        student_id: child.id,
       };
 
+      // 2. Save locally so it persists across refreshes
+      saveLocalSubmission(child.id, newPendingRecord);
+
+      // 3. Immediately update UI state
       setHistory(prev => [newPendingRecord, ...prev.filter(item => item.ref !== newPendingRecord.ref)]);
 
-      toast.success(`Payment receipt submitted for ${child.first_name}! Verification pending.`);
+      toast.success(`Payment receipt submitted for ${child.first_name}! Pending verification.`);
       setTxRef('');
       setReceiptFile(null);
       setFilePreview(null);
 
-      // Re-fetch from backend to synchronize
+      // 4. Re-sync with backend
       await loadPaymentHistory(child.id);
     } catch (err) {
       console.error('handleSubmit error', err);
