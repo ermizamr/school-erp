@@ -273,41 +273,12 @@ export default function ParentGrades({ child, enrollment, children = [], onSelec
         return { ...sub, avg, classOverall, gradedCount: graded.length, trajectory, trend };
       });
 
-      const MOCK_GRADE_DATA = [
-        {
-          subjectId: 'sub-1', subjectName: 'Mathematics', avg: 92.5, classOverall: 84.0, gradedCount: 3, trajectory: [88, 94, 95], trend: 'up',
-          exams: [
-            { id: 'ex-1', title: 'Midterm Algebra Exam', date: '2026-03-15', max_score: 100, myScore: 88, classAvg: 81 },
-            { id: 'ex-2', title: 'Calculus & Functions Test', date: '2026-04-20', max_score: 100, myScore: 94, classAvg: 85 },
-            { id: 'ex-3', title: 'Final Geometry Assessment', date: '2026-05-18', max_score: 100, myScore: 95, classAvg: 86 }
-          ]
-        },
-        {
-          subjectId: 'sub-2', subjectName: 'Physics', avg: 89.0, classOverall: 79.5, gradedCount: 3, trajectory: [85, 89, 93], trend: 'up',
-          exams: [
-            { id: 'ex-4', title: 'Kinematics & Motion Test', date: '2026-03-10', max_score: 100, myScore: 85, classAvg: 78 },
-            { id: 'ex-5', title: 'Newtonian Dynamics Quiz', date: '2026-04-12', max_score: 100, myScore: 89, classAvg: 80 },
-            { id: 'ex-6', title: 'Thermodynamics Final', date: '2026-05-22', max_score: 100, myScore: 93, classAvg: 81 }
-          ]
-        },
-        {
-          subjectId: 'sub-3', subjectName: 'Chemistry', avg: 94.0, classOverall: 82.0, gradedCount: 2, trajectory: [92, 96], trend: 'up',
-          exams: [
-            { id: 'ex-7', title: 'Organic Chemistry Midterm', date: '2026-03-28', max_score: 100, myScore: 92, classAvg: 80 },
-            { id: 'ex-8', title: 'Stoichiometry Lab Exam', date: '2026-05-05', max_score: 100, myScore: 96, classAvg: 84 }
-          ]
-        },
-        {
-          subjectId: 'sub-4', subjectName: 'English Literature', avg: 91.0, classOverall: 85.0, gradedCount: 3, trajectory: [88, 92, 93], trend: 'up',
-          exams: [
-            { id: 'ex-9', title: 'Essay Writing & Analysis', date: '2026-03-05', max_score: 100, myScore: 88, classAvg: 83 },
-            { id: 'ex-10', title: 'Poetry & Prose Evaluation', date: '2026-04-18', max_score: 100, myScore: 92, classAvg: 86 },
-            { id: 'ex-11', title: 'Term 2 Literature Final', date: '2026-05-30', max_score: 100, myScore: 93, classAvg: 86 }
-          ]
-        }
-      ];
+      // Subjects with most graded exams first, then alphabetical
+      arr.sort((a, b) =>
+        b.gradedCount - a.gradedCount || a.subjectName.localeCompare(b.subjectName),
+      );
 
-      setSubjectData(arr.length === 0 ? MOCK_GRADE_DATA : arr);
+      setSubjectData(arr);
     } catch (err) {
       console.warn('ParentGrades load warning', err);
       setSubjectData([]);
@@ -368,7 +339,7 @@ export default function ParentGrades({ child, enrollment, children = [], onSelec
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>{child.first_name}'s Grades</h1>
+          <h1 style={{ marginBottom: '0.25rem' }}>{child?.first_name || 'Student'}'s Grades</h1>
           <p>
             {enrollment
               ? `${enrollment.sections?.grades?.name} · Section ${enrollment.sections?.name} · Subject-by-subject academic record`

@@ -338,27 +338,11 @@ export default function ParentMessages({ child, children: allChildren = [], onSe
         }));
       }
 
-      const MOCK_TEACHERS = [
-        { id: 'b0000000-0000-0000-0000-000000000001', first_name: 'Abebe', last_name: 'Kebede', is_active: true, subjects: ['Mathematics'], subjectIds: ['f0000000-0000-0000-0000-000000000001'] },
-        { id: 'b0000000-0000-0000-0000-000000000002', first_name: 'Hanna', last_name: 'Tadesse', is_active: false, subjects: ['Physics', 'Chemistry'], subjectIds: ['f0000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000003'] },
-        { id: 'b0000000-0000-0000-0000-000000000003', first_name: 'Solomon', last_name: 'Girma', is_active: true, subjects: ['English'], subjectIds: ['f0000000-0000-0000-0000-000000000005'] },
-      ];
-
-      if (enriched.length === 0) {
-        enriched = MOCK_TEACHERS;
-      }
-
       setTeachers(enriched);
       fetchSidebarMeta(enriched);
     } catch (err) {
       console.error('ParentMessages fetchTeachers error', err);
-      const MOCK_TEACHERS = [
-        { id: 'b0000000-0000-0000-0000-000000000001', first_name: 'Abebe', last_name: 'Kebede', is_active: true, subjects: ['Mathematics'], subjectIds: ['f0000000-0000-0000-0000-000000000001'] },
-        { id: 'b0000000-0000-0000-0000-000000000002', first_name: 'Hanna', last_name: 'Tadesse', is_active: false, subjects: ['Physics', 'Chemistry'], subjectIds: ['f0000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000003'] },
-        { id: 'b0000000-0000-0000-0000-000000000003', first_name: 'Solomon', last_name: 'Girma', is_active: true, subjects: ['English'], subjectIds: ['f0000000-0000-0000-0000-000000000005'] },
-      ];
-      setTeachers(MOCK_TEACHERS);
-      fetchSidebarMeta(MOCK_TEACHERS);
+      setTeachers([]);
     } finally {
       setTeachersLoading(false);
     }
