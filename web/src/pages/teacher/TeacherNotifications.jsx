@@ -6,7 +6,7 @@ import { Megaphone, Plus, X, Bell, Users, BookOpen } from 'lucide-react';
 const inputStyle = {
   width: '100%', padding: '0.75rem', borderRadius: '0.5rem',
   border: '1px solid var(--border-color)', backgroundColor: 'rgba(15,23,42,0.5)',
-  color: 'white', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', fontFamily: 'Outfit, sans-serif'
+  color: 'white', outline: 'none', boxSizing: 'border-box', fontFamily: 'Outfit, sans-serif'
 };
 
 const TYPE_CONFIG = {
