@@ -4,7 +4,7 @@ import { supabase } from '../../supabaseClient';
 import { ToastProvider } from '../../components/Toast';
 import {
   LayoutDashboard, BarChart2, CalendarCheck, MessageSquare,
-  CreditCard, LogOut, School, ChevronDown, User, Users
+  CreditCard, LogOut, School, ChevronDown, User, Users, Menu, X
 } from 'lucide-react';
 
 import ParentHome       from './ParentHome';
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
 
 export default function ParentLayout() {
   const [activeTab, setActiveTab]     = useState('home');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -177,6 +178,7 @@ export default function ParentLayout() {
 
   function handleTabChange(key) {
     setActiveTab(key);
+    setMobileMenuOpen(false);
     navigate(`/parent/${key === 'home' ? 'overview' : key}`);
     if (key === 'messages') {
       setUnreadMap(prev => ({ ...prev, [selectedChild?.id]: 0 }));
@@ -205,10 +207,47 @@ export default function ParentLayout() {
 
   return (
     <ToastProvider>
+      {/* Mobile Top Header */}
+      <div className="mobile-top-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button
+            onClick={() => setMobileMenuOpen(o => !o)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: 'var(--primary)', fontSize: '1rem' }}>
+            <School size={18} />
+            <span>EthioSchool</span>
+          </div>
+        </div>
+
+        {/* Selected Child Pill Shortcut */}
+        {selectedChild && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'rgba(245,158,11,0.12)', padding: '0.25rem 0.65rem', borderRadius: '1rem', border: '1px solid rgba(245,158,11,0.25)' }}>
+            <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#f59e0b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800 }}>
+              {selectedChild.first_name[0]}
+            </div>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#f59e0b' }}>
+              {selectedChild.first_name}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Drawer Overlay Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1040, backdropFilter: 'blur(2px)' }}
+        />
+      )}
+
       <div className="app-layout">
 
-        {/* Sidebar */}
-        <aside className="sidebar" onClick={()=>childMenuOpen && setChildMenuOpen(false)}>
+        {/* Sidebar (Desktop + Mobile Drawer) */}
+        <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`} onClick={()=>childMenuOpen && setChildMenuOpen(false)}>
 
           {/* Brand */}
           <div className="sidebar-brand">
@@ -265,7 +304,7 @@ export default function ParentLayout() {
                       return (
                         <button
                           key={c.id}
-                          onClick={()=>selectChild(c)}
+                          onClick={()=>{ selectChild(c); setMobileMenuOpen(false); }}
                           style={{ width:'100%', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit', textAlign:'left', padding:'0.75rem 1rem', display:'flex', alignItems:'center', gap:'0.7rem', backgroundColor:isSelected?'rgba(245,158,11,0.08)':'transparent', transition:'background 0.15s' }}
                         >
                           <div style={{ width:'30px', height:'30px', borderRadius:'50%', backgroundColor:isSelected?'rgba(245,158,11,0.2)':'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:isSelected?'#f59e0b':'var(--text-secondary)', fontSize:'0.8rem', flexShrink:0 }}>
@@ -331,6 +370,30 @@ export default function ParentLayout() {
         <main className="main-content" style={{ flex:1, minWidth:0 }}>
           {renderContent()}
         </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (< 768px) */}
+      <div className="mobile-bottom-nav">
+        {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+          const isActive = activeTab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => handleTabChange(key)}
+              className={`mobile-nav-item ${isActive ? 'active' : ''}`}
+            >
+              <div style={{ position: 'relative' }}>
+                <Icon size={20} />
+                {key === 'messages' && totalUnread > 0 && (
+                  <span style={{ position: 'absolute', top: -3, right: -6, backgroundColor: '#ef4444', color: 'white', fontSize: '0.55rem', fontWeight: 800, padding: '0.05rem 0.3rem', borderRadius: '1rem' }}>
+                    {totalUnread}
+                  </span>
+                )}
+              </div>
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </div>
     </ToastProvider>
   );
