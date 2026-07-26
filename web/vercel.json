@@ -5,9 +5,5 @@
       "destination": "/index.html"
     }
   ],
-  "build": {
-    "env": {
-      "NODE_VERSION": "20.x"
-    }
-  }
+  "nodeVersion": "20.x"
 }
