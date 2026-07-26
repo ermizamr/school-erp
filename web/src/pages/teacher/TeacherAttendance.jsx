@@ -125,10 +125,50 @@ export default function TeacherAttendance() {
       const { error } = await supabase.from('attendance').upsert(records, { onConflict: 'student_id,section_id,date' });
       if (error) throw error;
       toast.success('Attendance saved successfully!');
+
+      // Notify parents of absent / late students
+      await notifyParentsOfAbsences(records);
     } catch (err) {
       toast.error('Failed to save attendance');
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * For each student marked absent or late, insert a notification
+   * targeting that student so their parent sees it in ParentHome.
+   */
+  async function notifyParentsOfAbsences(savedRecords) {
+    try {
+      const alertRecords = savedRecords.filter(r => r.status === 'absent' || r.status === 'late');
+      if (alertRecords.length === 0) return;
+
+      const formattedDate = new Date(selectedDate).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+      });
+
+      const notifications = alertRecords.map(r => {
+        const student = students.find(s => s.id === r.student_id);
+        const name    = student ? `${student.first_name} ${student.last_name}` : 'Your child';
+        const label   = r.status === 'absent' ? 'was marked absent' : 'arrived late';
+        return {
+          recipient_id: r.student_id, // ParentHome reads notifications for child's ID
+          title: `Attendance Alert — ${r.status === 'absent' ? 'Absent' : 'Late'}`,
+          message: `${name} ${label} on ${formattedDate}. Please contact the school if this is unexpected.`,
+          type: 'attendance',
+          is_read: false,
+          ...(teacherId ? { sender_id: teacherId } : {}),
+        };
+      });
+
+      const { error } = await supabase.from('notifications').insert(notifications);
+      if (!error) {
+        toast.success(`${notifications.length} parent notification${notifications.length > 1 ? 's' : ''} sent`);
+      }
+    } catch (err) {
+      // Non-critical — attendance is already saved, so just log
+      console.warn('Could not send parent notifications:', err);
     }
   }
 

@@ -26,6 +26,7 @@ export default function TeacherNotifications() {
   const [form, setForm] = useState({ title: '', message: '', type: 'general', section_id: '', recipient_id: '' });
   const [sending, setSending] = useState(false);
   const [teacherId, setTeacherId] = useState(null);
+  const [sentFilter, setSentFilter] = useState('mine'); // 'mine' | 'all'
 
   useEffect(() => { init(); }, []);
 
@@ -102,6 +103,7 @@ export default function TeacherNotifications() {
         message: form.message,
         type: form.type,
         is_read: false,
+        ...(teacherId ? { sender_id: teacherId } : {}),
       }));
 
       const { error } = await supabase.from('notifications').insert(inserts);
@@ -117,6 +119,12 @@ export default function TeacherNotifications() {
       setSending(false);
     }
   }
+
+  // Filter the notification list
+  const filteredNotifications = notifications.filter(n => {
+    if (sentFilter === 'mine') return teacherId && n.sender_id === teacherId;
+    return true;
+  });
 
   return (
     <div>
@@ -145,23 +153,38 @@ export default function TeacherNotifications() {
         ))}
       </div>
 
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', backgroundColor: 'var(--bg-surface)', borderRadius: '0.5rem', padding: '0.2rem', gap: '0.2rem', marginBottom: '1.5rem', width: 'fit-content', border: '1px solid var(--border-color)' }}>
+        {[{ key: 'mine', label: '📤 My Sent' }, { key: 'all', label: '📋 All' }].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSentFilter(key)}
+            style={{ padding: '0.45rem 1rem', borderRadius: '0.35rem', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, fontSize: '0.85rem', backgroundColor: sentFilter === key ? 'var(--primary)' : 'transparent', color: sentFilter === key ? 'white' : 'var(--text-secondary)', transition: 'all 0.2s' }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Notifications list */}
       {loading ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '3rem' }}>
           <p>Loading…</p>
         </div>
-      ) : notifications.length === 0 ? (
+      ) : filteredNotifications.length === 0 ? (
         <div className="glass-card" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
           <Megaphone size={48} style={{ color: 'var(--text-secondary)', margin: '0 auto 1rem', display: 'block', opacity: 0.3 }} />
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No announcements yet</h2>
-          <p>Send your first notification to a class or student.</p>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+            {sentFilter === 'mine' ? 'No announcements sent yet' : 'No announcements yet'}
+          </h2>
+          <p>{sentFilter === 'mine' ? 'Announcements you send will appear here.' : 'Send your first notification to a class or student.'}</p>
           <button className="btn btn-primary" style={{ marginTop: '1.5rem' }} onClick={() => setShowModal(true)}>
             Create Announcement
           </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {notifications.map(n => {
+          {filteredNotifications.map(n => {
             const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.general;
             const Icon = cfg.icon;
             return (
