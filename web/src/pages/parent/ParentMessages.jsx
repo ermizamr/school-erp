@@ -82,6 +82,13 @@ function TeacherListItem({ teacher, isActive, unreadCount, lastMessage, onClick 
     >
       <div style={{ position: 'relative', flexShrink: 0 }}>
         <Avatar name={`${teacher.first_name} ${teacher.last_name}`} color={TEACHER_COLOR} size={42} />
+        <div style={{
+          position: 'absolute', bottom: 0, right: 0,
+          width: '10px', height: '10px', borderRadius: '50%',
+          backgroundColor: teacher.is_active !== false ? '#10b981' : '#000000',
+          border: teacher.is_active !== false ? '2px solid var(--bg-surface)' : '2px solid rgba(255,255,255,0.4)',
+          boxShadow: `0 0 4px ${teacher.is_active !== false ? '#10b981' : 'rgba(0,0,0,0.8)'}`
+        }} />
         {unreadCount > 0 && (
           <div style={{
             position: 'absolute', top: -2, right: -2,
@@ -734,9 +741,9 @@ export default function ParentMessages({ child, children: allChildren = [], onSe
                 <div style={{
                   position: 'absolute', bottom: 0, right: 0,
                   width: '11px', height: '11px', borderRadius: '50%',
-                  backgroundColor: isTyping ? '#3b82f6' : '#10b981',
-                  border: '2px solid var(--bg-surface)',
-                  boxShadow: `0 0 6px ${isTyping ? '#3b82f6' : '#10b981'}`
+                  backgroundColor: isTyping ? '#3b82f6' : (activeTeacher.is_active !== false ? '#10b981' : '#000000'),
+                  border: activeTeacher.is_active !== false ? '2px solid var(--bg-surface)' : '2px solid rgba(255,255,255,0.4)',
+                  boxShadow: `0 0 6px ${isTyping ? '#3b82f6' : (activeTeacher.is_active !== false ? '#10b981' : 'rgba(0,0,0,0.8)')}`
                 }} />
               </div>
 
