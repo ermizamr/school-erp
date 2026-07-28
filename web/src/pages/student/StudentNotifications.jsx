@@ -1,171 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { Bell, Check, BookOpen, Users, Megaphone } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, CheckCheck, Trash2, Filter } from 'lucide-react';
+import { MOCK_NOTIFICATIONS } from './mock/studentMockData';
 
 const TYPE_CONFIG = {
-  general:    { label: 'General',    color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  icon: Bell },
-  attendance: { label: 'Attendance', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Users },
-  grade:      { label: 'Grade',      color: '#10B981', bg: 'rgba(16,185,129,0.12)',  icon: BookOpen },
+  assignment:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  label: 'Assignment' },
+  grade:        { color: '#10B981', bg: 'rgba(16,185,129,0.12)',  label: 'Grade' },
+  exam:         { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   label: 'Exam' },
+  message:      { color: '#ec4899', bg: 'rgba(236,72,153,0.12)',  label: 'Message' },
+  announcement: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', label: 'Notice' },
+  library:      { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',   label: 'Library' },
+  fee:          { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', label: 'Finance' },
 };
 
-export default function StudentNotifications({ profile }) {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function StudentNotifications() {
+  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    if (profile) load();
-    else setLoading(false);
-  }, [profile]);
+  const unread = notifications.filter(n => !n.read).length;
 
-  async function load() {
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('recipient_id', profile.id)
-        .order('created_at', { ascending: false });
-      setNotifications(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  function markAllRead() { setNotifications(prev => prev.map(n => ({ ...n, read: true }))); }
+  function markRead(id)   { setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n)); }
+  function remove(id)     { setNotifications(prev => prev.filter(n => n.id !== id)); }
 
-  async function markRead(id) {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-  }
-
-  async function markAllRead() {
-    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
-    if (unreadIds.length === 0) return;
-    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-  }
-
+  const types = ['all', ...Object.keys(TYPE_CONFIG)];
   const filtered = filter === 'all' ? notifications : notifications.filter(n => n.type === filter);
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  if (loading) return <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>Loading notifications…</div>;
 
   return (
-    <div style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: 720, margin: '0 auto', width: '100%' }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-            <h1 style={{ margin: 0 }}>Notifications</h1>
-            {unreadCount > 0 && (
-              <span style={{ backgroundColor: '#ef4444', color: 'white', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '1rem' }}>
-                {unreadCount} new
-              </span>
-            )}
-          </div>
-          <p>Messages from your teachers and school administration.</p>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.25rem' }}>Notifications</h2>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{unread} unread · {notifications.length} total</div>
         </div>
-        {unreadCount > 0 && (
-          <button
-            className="btn"
-            onClick={markAllRead}
-            style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem' }}
-          >
-            <Check size={15} /> Mark all read
+        {unread > 0 && (
+          <button onClick={markAllRead} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.5rem', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', padding: '0.5rem 1rem' }}>
+            <CheckCheck size={15} /> Mark all as read
           </button>
         )}
       </div>
 
-      {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        {[{ key: 'all', label: 'All' }, ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ key: k, label: v.label }))].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            style={{
-              padding: '0.4rem 0.9rem', borderRadius: '1rem', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontWeight: 500, fontSize: '0.85rem',
-              backgroundColor: filter === key ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
-              color: filter === key ? 'white' : 'var(--text-secondary)',
-              transition: 'all 0.2s',
-            }}
-          >
-            {label}
-            {key === 'all' && notifications.length > 0 && (
-              <span style={{ marginLeft: '0.4rem', opacity: 0.7 }}>({notifications.length})</span>
-            )}
-          </button>
-        ))}
+      {/* Filter chips */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {types.map(type => {
+          const cfg = TYPE_CONFIG[type];
+          const active = filter === type;
+          return (
+            <button key={type} onClick={() => setFilter(type)} style={{
+              padding: '0.35rem 0.875rem', borderRadius: '1rem', border: `1px solid ${active ? (cfg?.color || 'var(--primary)') : 'var(--border-color)'}`,
+              background: active ? (cfg?.bg || 'rgba(16,185,129,0.12)') : 'transparent',
+              color: active ? (cfg?.color || 'var(--primary)') : 'var(--text-secondary)',
+              cursor: 'pointer', fontFamily: 'inherit', fontWeight: active ? 700 : 500, fontSize: '0.8rem',
+            }}>
+              {type === 'all' ? 'All' : cfg?.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Notification list */}
-      {filtered.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-          <Megaphone size={48} style={{ color: 'var(--text-secondary)', opacity: 0.3, margin: '0 auto 1rem', display: 'block' }} />
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-            {filter === 'all' ? 'No notifications yet' : `No ${filter} notifications`}
-          </h2>
-          <p>You'll see messages from your teachers here.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          {filtered.map(n => {
-            const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.general;
-            const Icon = cfg.icon;
-            const timeAgo = (() => {
-              const diff = Date.now() - new Date(n.created_at).getTime();
-              const mins = Math.floor(diff / 60000);
-              if (mins < 1) return 'Just now';
-              if (mins < 60) return `${mins}m ago`;
-              const hrs = Math.floor(mins / 60);
-              if (hrs < 24) return `${hrs}h ago`;
-              return `${Math.floor(hrs / 24)}d ago`;
-            })();
-
+      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <Bell size={40} style={{ margin: '0 auto 1rem', display: 'block', opacity: 0.3 }} />
+            <div style={{ fontWeight: 600 }}>No notifications in this category.</div>
+          </div>
+        ) : (
+          filtered.map((n, i) => {
+            const cfg = TYPE_CONFIG[n.type] || { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', label: n.type };
             return (
-              <div
-                key={n.id}
-                className="glass-card"
-                onClick={() => !n.is_read && markRead(n.id)}
+              <div key={n.id}
+                onClick={() => markRead(n.id)}
                 style={{
-                  padding: '1.1rem 1.35rem',
-                  display: 'flex', gap: '1rem', alignItems: 'flex-start',
-                  borderLeft: `3px solid ${n.is_read ? 'var(--border-color)' : cfg.color}`,
-                  opacity: n.is_read ? 0.75 : 1,
-                  cursor: n.is_read ? 'default' : 'pointer',
-                  transition: 'opacity 0.2s',
-                  position: 'relative',
+                  display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '1rem 1.25rem',
+                  borderBottom: i < filtered.length - 1 ? '1px solid var(--border-color)' : 'none',
+                  background: n.read ? 'transparent' : 'rgba(16,185,129,0.04)',
+                  cursor: 'pointer', transition: 'background 0.1s',
                 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                onMouseLeave={e => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(16,185,129,0.04)'}
               >
                 {/* Icon */}
-                <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: n.is_read ? 'rgba(255,255,255,0.05)' : cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background-color 0.2s' }}>
-                  <Icon size={17} color={n.is_read ? 'var(--text-secondary)' : cfg.color} />
+                <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                  {n.icon}
                 </div>
-
-                {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.3rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: n.is_read ? 500 : 700 }}>{n.title}</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <div style={{ fontWeight: n.read ? 500 : 700, fontSize: '0.875rem' }}>{n.title}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <span className="badge" style={{ backgroundColor: n.is_read ? 'rgba(255,255,255,0.05)' : cfg.bg, color: n.is_read ? 'var(--text-secondary)' : cfg.color, fontSize: '0.65rem' }}>
-                        {cfg.label}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{timeAgo}</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{n.time}</span>
+                      <button onClick={e => { e.stopPropagation(); remove(n.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.1rem', opacity: 0.5 }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.5}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{n.message}</p>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{n.body}</div>
+                  <div style={{ marginTop: '0.375rem' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>{cfg.label}</span>
+                  </div>
                 </div>
-
-                {/* Unread dot */}
-                {!n.is_read && (
-                  <div style={{ position: 'absolute', top: '1rem', right: '1rem', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cfg.color, flexShrink: 0 }} />
-                )}
+                {!n.read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 6 }} />}
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
+
     </div>
   );
 }

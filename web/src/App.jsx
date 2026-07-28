@@ -5,6 +5,9 @@ import { supabase } from './supabaseClient';
 import Login from './Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
+import StudentList    from './pages/students/StudentList';
+import StudentWizard  from './pages/students/StudentWizard';
+import StudentProfile from './pages/students/StudentProfile';
 import Academics from './pages/Academics';
 import Attendance from './pages/Attendance';
 import Exams from './pages/Exams';
@@ -76,7 +79,9 @@ export default function App() {
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="students" element={<Students />} />
+            <Route path="students" element={<StudentList />} />
+            <Route path="students/new" element={<StudentWizard />} />
+            <Route path="students/:id" element={<StudentProfile />} />
             <Route path="academics" element={<Academics />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="exams" element={<Exams />} />

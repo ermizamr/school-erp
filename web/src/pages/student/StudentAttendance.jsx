@@ -1,246 +1,320 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { ChevronLeft, ChevronRight, Flame } from 'lucide-react';
+import { useState } from 'react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
+import {
+  CheckCircle2, XCircle, AlertTriangle, Calendar, Clock, User, AlertCircle
+} from 'lucide-react';
+import { MOCK_ATTENDANCE } from './mock/studentMockData';
 
-const STATUS_CONFIG = {
-  present: { color: '#10B981', bg: 'rgba(16,185,129,0.18)', label: 'Present'  },
-  absent:  { color: '#ef4444', bg: 'rgba(239,68,68,0.18)',  label: 'Absent'   },
-  late:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.18)', label: 'Late'     },
-  excused: { color: '#3b82f6', bg: 'rgba(59,130,246,0.18)', label: 'Excused'  },
+/* ─── Helpers ─────────────────────────────────────────── */
+
+const DAY_STATUS = {
+  present: { color:'#10B981', bg:'#10B98130', label:'Present' },
+  absent:  { color:'#EF4444', bg:'#EF444430', label:'Absent'  },
+  late:    { color:'#F59E0B', bg:'#F59E0B30', label:'Late'    },
+  weekend: { color:'#475569', bg:'#47556918', label:'Weekend' },
+  holiday: { color:'#6366F1', bg:'#6366F130', label:'Holiday' },
+  future:  { color:'transparent', bg:'transparent', label:''   },
 };
 
-const MONTH_NAMES = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
-];
-const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+/* ─── Attendance Ring ─────────────────────────────────── */
 
-function buildCalendarGrid(year, month) {
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const grid = [];
-  let week = Array(firstDay).fill(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    week.push(d);
-    if (week.length === 7) { grid.push(week); week = []; }
-  }
-  if (week.length) {
-    while (week.length < 7) week.push(null);
-    grid.push(week);
-  }
-  return grid;
-}
-
-export default function StudentAttendance({ profile, enrollment }) {
-  const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [allRecords, setAllRecords] = useState([]); // [{date, status}]
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (profile) load();
-    else setLoading(false);
-  }, [profile]);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('attendance')
-        .select('date, status')
-        .eq('student_id', profile.id)
-        .order('date', { ascending: true });
-      setAllRecords(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Build lookup map: date string → status
-  const attMap = {};
-  allRecords.forEach(r => { attMap[r.date] = r.status; });
-
-  // Stats for viewed month
-  const monthStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
-  const monthRecords = allRecords.filter(r => r.date.startsWith(monthStr));
-  const monthStats = { present: 0, absent: 0, late: 0, excused: 0 };
-  monthRecords.forEach(r => { monthStats[r.status] = (monthStats[r.status] || 0) + 1; });
-  const monthTotal = monthRecords.length;
-  const monthRate = monthTotal > 0
-    ? Math.round(((monthStats.present + monthStats.late) / monthTotal) * 100)
-    : null;
-
-  // Overall stats
-  const totalAll = allRecords.length;
-  const presentAll = allRecords.filter(r => r.status === 'present' || r.status === 'late').length;
-  const overallRate = totalAll > 0 ? Math.round((presentAll / totalAll) * 100) : null;
-
-  // Current streak of consecutive present/late days (backwards from today)
-  let streak = 0;
-  const todayStr = now.toISOString().split('T')[0];
-  const sorted = [...allRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
-  for (const r of sorted) {
-    if (r.date > todayStr) continue;
-    if (r.status === 'present' || r.status === 'late') streak++;
-    else break;
-  }
-
-  const grid = buildCalendarGrid(viewYear, viewMonth);
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  }
-
-  const canGoNext = viewYear < now.getFullYear() || (viewYear === now.getFullYear() && viewMonth < now.getMonth());
-
-  if (loading) return <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>Loading attendance…</div>;
+function AttendanceRing({ pct, size = 100 }) {
+  const color = pct >= 90 ? '#10B981' : pct >= 75 ? '#F59E0B' : '#EF4444';
+  const r = (size - 14) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
 
   return (
-    <div style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ marginBottom: '0.25rem' }}>Attendance</h1>
-        <p>Your attendance record for the current academic period.</p>
+    <svg width={size} height={size} style={{ display:'block' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border-color)" strokeWidth={8}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={8}
+        strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{ transition:'stroke-dashoffset 1s ease' }}/>
+      <text x={size/2} y={size/2-4} textAnchor="middle" fill={color} fontSize={18} fontWeight={800}>{pct}%</text>
+      <text x={size/2} y={size/2+14} textAnchor="middle" fill="var(--text-secondary)" fontSize={10} fontWeight={600}>ATTENDANCE</text>
+    </svg>
+  );
+}
+
+/* ─── KPI Card ─────────────────────────────────────────── */
+
+function KpiCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="glass-card" style={{
+      borderRadius:14,padding:'18px 20px',display:'flex',
+      alignItems:'center',gap:16,flex:1,minWidth:130,
+    }}>
+      <div style={{
+        width:44,height:44,borderRadius:12,
+        background:`${color}18`,display:'flex',alignItems:'center',justifyContent:'center',
+      }}>
+        <Icon size={20} color={color}/>
+      </div>
+      <div>
+        <div style={{ fontSize:24,fontWeight:800,color:'var(--text-primary)' }}>{value}</div>
+        <div style={{ fontSize:12,color:'var(--text-secondary)',fontWeight:500 }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Calendar Grid ───────────────────────────────────── */
+
+const WEEK_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function buildCalendarDays(year, month, attendance) {
+  // month is 0-indexed
+  const firstDay = new Date(year, month, 1);
+  // Monday-start: (0=Sun→6, 1=Mon→0, ..., 6=Sat→5)
+  let startOffset = firstDay.getDay() - 1;
+  if (startOffset < 0) startOffset = 6;
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const cells = [];
+
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayOfWeek = new Date(year, month, d).getDay(); // 0=Sun, 6=Sat
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    const cellDate = new Date(year, month, d);
+    const isFuture = cellDate > today;
+
+    let status = 'future';
+    if (isFuture) {
+      status = 'future';
+    } else if (isWeekend) {
+      status = 'weekend';
+    } else {
+      const record = attendance.calendar?.[dateStr];
+      status = record || 'present';
+    }
+
+    cells.push({ day: d, status, dateStr });
+  }
+
+  return cells;
+}
+
+function CalendarGrid({ year, month, attendance }) {
+  const cells = buildCalendarDays(year, month, attendance);
+  const monthName = new Date(year, month, 1).toLocaleString('default', { month:'long', year:'numeric' });
+
+  return (
+    <div>
+      <div style={{ fontWeight:700,fontSize:15,color:'var(--text-primary)',marginBottom:12 }}>{monthName}</div>
+      {/* Week headers */}
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(35px,1fr))',gap:4,marginBottom:6 }}>
+        {WEEK_DAYS.map(d => (
+          <div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:700,color:'var(--text-secondary)',padding:'4px 0' }}>{d}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(35px,1fr))',gap:4 }}>
+        {cells.map((cell,i) => {
+          if (!cell) return <div key={`empty-${i}`}/>;
+          const st = DAY_STATUS[cell.status];
+          return (
+            <div key={cell.dateStr} title={st.label}
+              style={{
+                aspectRatio:'1',borderRadius:8,
+                background: st.bg,
+                border: `1px solid ${st.color}55`,
+                display:'flex',alignItems:'center',justifyContent:'center',
+                fontSize:12,fontWeight:600,
+                color: cell.status==='future' ? 'var(--text-secondary)' : st.color,
+                opacity: cell.status==='future' ? 0.35 : 1,
+                transition:'transform 0.1s',cursor: cell.status!=='future'?'default':'default',
+              }}
+              onMouseEnter={e => { if(cell.status!=='future') e.currentTarget.style.transform='scale(1.08)'; }}
+              onMouseLeave={e => e.currentTarget.style.transform=''}
+            >
+              {cell.day}
+            </div>
+          );
+        })}
+      </div>
+      {/* Legend */}
+      <div style={{ display:'flex',gap:14,marginTop:14,flexWrap:'wrap' }}>
+        {Object.entries(DAY_STATUS).filter(([k])=>k!=='future').map(([k,v]) => (
+          <div key={k} style={{ display:'flex',alignItems:'center',gap:5 }}>
+            <div style={{ width:12,height:12,borderRadius:3,background:v.bg,border:`1px solid ${v.color}55` }}/>
+            <span style={{ fontSize:11,color:'var(--text-secondary)',fontWeight:500 }}>{v.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Custom Tooltip ──────────────────────────────────── */
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background:'var(--bg-surface)',border:'1px solid var(--border-color)',
+      borderRadius:10,padding:'10px 16px',boxShadow:'0 8px 24px rgba(0,0,0,0.3)',
+    }}>
+      <p style={{ margin:'0 0 4px',fontSize:12,color:'var(--text-secondary)',fontWeight:600 }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.name} style={{ margin:'2px 0',fontSize:13,fontWeight:700,color:p.fill }}>
+          {p.name}: {p.value} days
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Main Page ───────────────────────────────────────── */
+
+export default function StudentAttendance() {
+  const att = MOCK_ATTENDANCE;
+  const pct = att.overallPct ?? Math.round((att.present / (att.present + att.absent + att.late)) * 100);
+  const isAtRisk = pct < 80;
+
+  // Use current month (July 2026) for calendar
+  const CAL_YEAR = 2026;
+  const CAL_MONTH = 6; // July (0-indexed)
+
+  return (
+    <div style={{ padding:'24px',maxWidth:1200,margin:'0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom:24 }}>
+        <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:'var(--text-primary)',display:'flex',alignItems:'center',gap:10 }}>
+          <Calendar size={26} color="var(--primary)"/>Attendance
+        </h1>
+        <p style={{ margin:'4px 0 0',fontSize:14,color:'var(--text-secondary)' }}>
+          Academic Year {att.academicYear || '2025–2026'}
+        </p>
       </div>
 
-      {/* Top stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        {/* Overall rate */}
-        <div className="glass-card" style={{ textAlign: 'center', borderTop: `3px solid ${overallRate >= 80 ? '#10B981' : overallRate >= 60 ? '#f59e0b' : '#ef4444'}` }}>
-          <p style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.4rem' }}>Overall Rate</p>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: overallRate >= 80 ? '#10B981' : overallRate >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
-            {overallRate !== null ? `${overallRate}%` : '—'}
+      {/* At-Risk Banner */}
+      {isAtRisk && (
+        <div style={{
+          background:'#EF444412',border:'1px solid #EF444440',
+          borderRadius:12,padding:'14px 20px',marginBottom:20,
+          display:'flex',alignItems:'center',gap:12,
+        }}>
+          <AlertTriangle size={20} color="#EF4444"/>
+          <div>
+            <div style={{ fontWeight:700,fontSize:14,color:'#EF4444' }}>Attendance At-Risk Warning</div>
+            <div style={{ fontSize:12,color:'var(--text-secondary)',marginTop:2 }}>
+              Your attendance ({pct}%) is below the required 80% threshold. Please attend classes regularly to avoid academic penalties.
+            </div>
           </div>
-          <p style={{ fontSize: '0.78rem', marginTop: '0.3rem' }}>{presentAll}/{totalAll} days</p>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div style={{ display:'flex',gap:14,marginBottom:24,flexWrap:'wrap' }}>
+        <KpiCard label="Overall %" value={`${pct}%`} icon={CheckCircle2} color={pct>=90?'#10B981':pct>=75?'#F59E0B':'#EF4444'}/>
+        <KpiCard label="Present Days" value={att.present} icon={CheckCircle2} color="#10B981"/>
+        <KpiCard label="Absent Days" value={att.absent} icon={XCircle} color="#EF4444"/>
+        <KpiCard label="Late Days" value={att.late} icon={AlertCircle} color="#F59E0B"/>
+      </div>
+
+      {/* Ring + Bar Chart Row */}
+      <div style={{ display:'grid',gridTemplateColumns:'auto 1fr',gap:20,marginBottom:24 }}>
+        {/* Ring */}
+        <div className="glass-card" style={{
+          borderRadius:16,padding:'24px 28px',
+          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,
+        }}>
+          <AttendanceRing pct={pct} size={140}/>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)' }}>
+              {att.present} / {(att.present||0)+(att.absent||0)+(att.late||0)} days
+            </div>
+            <div style={{ fontSize:11,color:'var(--text-secondary)',marginTop:2 }}>Total School Days</div>
+          </div>
         </div>
 
-        {/* Streak */}
-        <div className="glass-card" style={{ textAlign: 'center', borderTop: '3px solid #f97316' }}>
-          <p style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.4rem' }}>Current Streak</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-            <Flame size={24} color="#f97316" />
-            <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#f97316', lineHeight: 1 }}>{streak}</span>
-          </div>
-          <p style={{ fontSize: '0.78rem', marginTop: '0.3rem' }}>consecutive days</p>
-        </div>
-
-        {/* This month */}
-        <div className="glass-card" style={{ textAlign: 'center', borderTop: '3px solid #a78bfa' }}>
-          <p style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.4rem' }}>This Month</p>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#a78bfa', lineHeight: 1 }}>
-            {monthRate !== null ? `${monthRate}%` : '—'}
-          </div>
-          <p style={{ fontSize: '0.78rem', marginTop: '0.3rem' }}>{MONTH_NAMES[viewMonth]}</p>
-        </div>
-
-        {/* Absences total */}
-        <div className="glass-card" style={{ textAlign: 'center', borderTop: '3px solid #ef4444' }}>
-          <p style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.4rem' }}>Total Absences</p>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>
-            {allRecords.filter(r => r.status === 'absent').length}
-          </div>
-          <p style={{ fontSize: '0.78rem', marginTop: '0.3rem' }}>all time</p>
+        {/* Monthly Bar Chart */}
+        <div className="glass-card" style={{ borderRadius:16,padding:'20px' }}>
+          <div style={{ fontWeight:700,fontSize:15,color:'var(--text-primary)',marginBottom:4 }}>Monthly Attendance</div>
+          <div style={{ fontSize:12,color:'var(--text-secondary)',marginBottom:14 }}>Present vs Absent per month</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={att.monthly || []} margin={{ top:4,right:16,left:-10,bottom:4 }} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false}/>
+              <XAxis dataKey="month" tick={{ fontSize:11,fill:'var(--text-secondary)' }} axisLine={false} tickLine={false}/>
+              <YAxis tick={{ fontSize:11,fill:'var(--text-secondary)' }} axisLine={false} tickLine={false}/>
+              <Tooltip content={<ChartTooltip/>}/>
+              <Legend wrapperStyle={{ fontSize:12,color:'var(--text-secondary)' }}/>
+              <Bar dataKey="present" name="Present" fill="#10B981" radius={[4,4,0,0]}/>
+              <Bar dataKey="absent" name="Absent" fill="#EF4444" radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
       {/* Calendar */}
-      <div className="glass-card">
-        {/* Calendar header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <button onClick={prevMonth} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '0.4rem', padding: '0.4rem 0.7rem', color: 'white', cursor: 'pointer' }}>
-            <ChevronLeft size={18} />
-          </button>
-          <h2 style={{ margin: 0, fontSize: '1.25rem' }}>
-            {MONTH_NAMES[viewMonth]} {viewYear}
-          </h2>
-          <button onClick={nextMonth} disabled={!canGoNext} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '0.4rem', padding: '0.4rem 0.7rem', color: canGoNext ? 'white' : 'var(--text-secondary)', cursor: canGoNext ? 'pointer' : 'default', opacity: canGoNext ? 1 : 0.4 }}>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-
-        {/* Month summary strip */}
-        {monthTotal > 0 && (
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.25rem', padding: '0.75rem 1rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '0.5rem' }}>
-            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-              monthStats[key] > 0 && (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: cfg.color }} />
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {cfg.label}: <strong style={{ color: cfg.color }}>{monthStats[key]}</strong>
-                  </span>
-                </div>
-              )
-            ))}
-          </div>
-        )}
-
-        {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '6px' }}>
-          {DAY_NAMES.map(d => (
-            <div key={d} style={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', padding: '0.3rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {d}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {grid.map((week, wi) => (
-            <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-              {week.map((day, di) => {
-                if (!day) return <div key={di} />;
-                const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const status = attMap[dateStr];
-                const cfg = status ? STATUS_CONFIG[status] : null;
-                const isToday = dateStr === now.toISOString().split('T')[0];
-                const isFuture = dateStr > now.toISOString().split('T')[0];
-                return (
-                  <div
-                    key={di}
-                    title={status ? `${STATUS_CONFIG[status].label}` : 'No record'}
-                    style={{
-                      aspectRatio: '1',
-                      borderRadius: '0.4rem',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '0.8rem',
-                      fontWeight: isToday ? 800 : status ? 600 : 400,
-                      backgroundColor: cfg ? cfg.bg : isFuture ? 'transparent' : 'rgba(255,255,255,0.03)',
-                      color: cfg ? cfg.color : isFuture ? 'rgba(255,255,255,0.2)' : 'var(--text-secondary)',
-                      border: isToday ? '2px solid var(--primary)' : '1px solid transparent',
-                      cursor: 'default',
-                      transition: 'background-color 0.15s',
-                      minWidth: 0,
-                    }}
-                  >
-                    {day}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <div style={{ width: '14px', height: '14px', borderRadius: '3px', backgroundColor: cfg.bg, border: `1px solid ${cfg.color}` }} />
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{cfg.label}</span>
-            </div>
-          ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <div style={{ width: '14px', height: '14px', borderRadius: '3px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }} />
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>No record</span>
-          </div>
-        </div>
+      <div className="glass-card" style={{ borderRadius:16,padding:'24px',marginBottom:24 }}>
+        <div style={{ fontWeight:700,fontSize:15,color:'var(--text-primary)',marginBottom:4 }}>Calendar View</div>
+        <div style={{ fontSize:12,color:'var(--text-secondary)',marginBottom:20 }}>Day-by-day attendance status</div>
+        <CalendarGrid year={CAL_YEAR} month={CAL_MONTH} attendance={att}/>
       </div>
+
+      {/* Absence History Table */}
+      {att.absences?.length > 0 && (
+        <div className="glass-card" style={{ borderRadius:16,overflow:'hidden' }}>
+          <div style={{ padding:'20px 20px 0' }}>
+            <div style={{ fontWeight:700,fontSize:15,color:'var(--text-primary)',marginBottom:4 }}>Absence History</div>
+            <div style={{ fontSize:12,color:'var(--text-secondary)',marginBottom:16 }}>Record of all absences and tardiness</div>
+          </div>
+          <div style={{ overflowX:'auto' }}>
+            <div className="table-responsive" style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}><table style={{ width:'100%',borderCollapse:'collapse',minWidth:520 }}>
+              <thead>
+                <tr style={{ borderBottom:'1px solid var(--border-color)',background:'var(--bg-color)' }}>
+                  {['Date','Type','Reason','Status'].map(h => (
+                    <th key={h} style={{
+                      padding:'11px 16px',fontSize:11,fontWeight:700,
+                      color:'var(--text-secondary)',textTransform:'uppercase',
+                      letterSpacing:0.6,textAlign:'left',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {att.absences.map((ab,i) => {
+                  const excused = ab.excused;
+                  return (
+                    <tr key={i} style={{ borderBottom:'1px solid var(--border-color)' }}
+                      onMouseEnter={e=>e.currentTarget.style.background='var(--bg-color)'}
+                      onMouseLeave={e=>e.currentTarget.style.background=''}
+                    >
+                      <td style={{ padding:'12px 16px',fontSize:13,fontWeight:600,color:'var(--text-primary)' }}>{ab.date}</td>
+                      <td style={{ padding:'12px 16px' }}>
+                        <span style={{
+                          background: ab.type==='absent'?'#EF444418':'#F59E0B18',
+                          color: ab.type==='absent'?'#EF4444':'#F59E0B',
+                          border: `1px solid ${ab.type==='absent'?'#EF444440':'#F59E0B40'}`,
+                          borderRadius:6,padding:'2px 10px',fontSize:12,fontWeight:700,textTransform:'capitalize',
+                        }}>{ab.type}</span>
+                      </td>
+                      <td style={{ padding:'12px 16px',fontSize:13,color:'var(--text-secondary)' }}>{ab.reason || '—'}</td>
+                      <td style={{ padding:'12px 16px' }}>
+                        <span style={{
+                          background: excused?'#10B98118':'#EF444418',
+                          color: excused?'#10B981':'#EF4444',
+                          border: `1px solid ${excused?'#10B98140':'#EF444440'}`,
+                          borderRadius:6,padding:'2px 10px',fontSize:12,fontWeight:700,
+                        }}>{excused?'Excused':'Unexcused'}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

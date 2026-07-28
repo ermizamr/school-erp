@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School ERP – Student Management</title>
+  <meta name="description" content="Production-ready Student Management module for private schools – part of a complete School ERP system." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="school-logo">
+        <div class="logo-icon">🏛️</div>
+        <div class="logo-text">
+          <span class="school-name">Oakridge Academy</span>
+          <span class="school-tag">Enterprise ERP</span>
+        </div>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="sidebar-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search modules..." />
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Core</div>
+      <a href="#" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="student-list.html" class="nav-item active"><span class="nav-icon">🎓</span><span class="nav-label">Students</span><span class="nav-badge">2,847</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">👩‍🏫</span><span class="nav-label">Teachers</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">👨‍👩‍👧</span><span class="nav-label">Parents</span></a>
+
+      <div class="nav-section-label">Academics</div>
+      <a href="#" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Attendance</span><span class="nav-badge alert">12</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">📚</span><span class="nav-label">Academics</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">📝</span><span class="nav-label">Gradebook</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">📋</span><span class="nav-label">Exams</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">📌</span><span class="nav-label">Assignments</span></a>
+
+      <div class="nav-section-label">Administration</div>
+      <a href="#" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Finance</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">📖</span><span class="nav-label">Library</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">🚌</span><span class="nav-label">Transport</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Hostel</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">📦</span><span class="nav-label">Inventory</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">👥</span><span class="nav-label">Human Resources</span></a>
+
+      <div class="nav-section-label">Insights</div>
+      <a href="#" class="nav-item"><span class="nav-icon">📈</span><span class="nav-label">Reports</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">💬</span><span class="nav-label">Messaging</span><span class="nav-badge">3</span></a>
+      <a href="#" class="nav-item"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">JD</div>
+        <div class="user-info">
+          <span class="user-name">Jane Doe</span>
+          <span class="user-role">Super Administrator</span>
+        </div>
+        <button class="user-menu-btn" aria-label="User menu">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="breadcrumb">
+          <a href="#">Home</a>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          <span>Students</span>
+        </div>
+        <h1 class="page-title">Student Management</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-academic-year">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Academic Year: 2025–2026</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <button class="btn-icon" aria-label="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notification-dot"></span>
+        </button>
+        <a href="student-list.html" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Student
+        </a>
+      </div>
+    </header>
+
+    <!-- Page content loaded from student-list.html via iframe for demo -->
+    <div class="page-frame-wrapper">
+      <iframe src="student-list.html" class="page-frame" title="Student List"></iframe>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,249 +1,297 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
-import { Award, TrendingUp, TrendingDown, Minus, BarChart2 } from 'lucide-react';
-import { getLetterGrade, calcGPA } from '../../lib/grades';
+import { useState } from 'react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
+} from 'recharts';
+import {
+  TrendingUp, Award, ChevronDown, ChevronUp, BarChart2, Star, Target
+} from 'lucide-react';
+import { MOCK_GRADES } from './mock/studentMockData';
 
-// Score bar component
-function ScoreBar({ score, max = 100, color }) {
-  const pct = Math.min(100, Math.max(0, (score / max) * 100));
+/* ─── Helpers ─────────────────────────────────────────── */
+
+const GRADE_COLOR = {
+  'A+':'#10B981','A':'#10B981','A-':'#34D399',
+  'B+':'#6366F1','B':'#6366F1','B-':'#818CF8',
+  'C+':'#F59E0B','C':'#F59E0B','D':'#EF4444','F':'#DC2626',
+};
+
+const SUBJECT_DOT_COLORS = [
+  '#10B981','#6366F1','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316',
+];
+
+/* ─── GPA Ring ─────────────────────────────────────────── */
+
+function GpaRing({ gpa, size = 120 }) {
+  const max = 4.0;
+  const pct = (gpa / max);
+  const r = (size - 20) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - pct * circ;
+  const color = gpa >= 3.5 ? '#10B981' : gpa >= 3.0 ? '#6366F1' : gpa >= 2.0 ? '#F59E0B' : '#EF4444';
+
   return (
-    <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: '4px', overflow: 'hidden', flex: 1 }}>
-      <div
-        style={{ width: `${pct}%`, height: '100%', backgroundColor: color, borderRadius: '4px', transition: 'width 0.6s ease' }}
-      />
+    <svg width={size} height={size} style={{ display:'block' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border-color)" strokeWidth={10}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={10}
+        strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{ transition:'stroke-dashoffset 1s ease' }}/>
+      <text x={size/2} y={size/2 - 6} textAnchor="middle" fill={color}
+        fontSize={22} fontWeight={800}>{gpa.toFixed(2)}</text>
+      <text x={size/2} y={size/2 + 16} textAnchor="middle" fill="var(--text-secondary)"
+        fontSize={11} fontWeight={600}>GPA</text>
+    </svg>
+  );
+}
+
+/* ─── Expandable Grade Row ─────────────────────────────── */
+
+function GradeRow({ subject, idx }) {
+  const [open, setOpen] = useState(false);
+  const dotColor = SUBJECT_DOT_COLORS[idx % SUBJECT_DOT_COLORS.length];
+  const gradeColor = GRADE_COLOR[subject.grade] || 'var(--text-secondary)';
+
+  return (
+    <>
+      <tr style={{ borderBottom:'1px solid var(--border-color)', cursor:'pointer' }}
+        onClick={() => setOpen(v => !v)}
+        onMouseEnter={e => e.currentTarget.style.background='var(--bg-color)'}
+        onMouseLeave={e => e.currentTarget.style.background='transparent'}
+      >
+        <td style={{ padding:'12px 16px',display:'flex',alignItems:'center',gap:10 }}>
+          <span style={{ width:10,height:10,borderRadius:'50%',background:dotColor,display:'inline-block',flexShrink:0 }}/>
+          <span style={{ fontWeight:600,fontSize:14,color:'var(--text-primary)' }}>{subject.name}</span>
+        </td>
+        <td style={{ padding:'12px 8px',fontSize:13,color:'var(--text-secondary)',textAlign:'center' }}>
+          {subject.quizAvg ?? '—'}%
+        </td>
+        <td style={{ padding:'12px 8px',fontSize:13,color:'var(--text-secondary)',textAlign:'center' }}>
+          {subject.assignmentAvg ?? '—'}%
+        </td>
+        <td style={{ padding:'12px 8px',fontSize:13,color:'var(--text-secondary)',textAlign:'center' }}>
+          {subject.midterm ?? '—'}%
+        </td>
+        <td style={{ padding:'12px 8px',fontSize:13,color:'var(--text-secondary)',textAlign:'center' }}>
+          {subject.final ?? '—'}%
+        </td>
+        <td style={{ padding:'12px 8px',textAlign:'center' }}>
+          <div style={{ display:'flex',alignItems:'center',gap:6,justifyContent:'center' }}>
+            <div style={{
+              width:60,height:6,borderRadius:3,background:'var(--border-color)',overflow:'hidden',
+            }}>
+              <div style={{ width:`${subject.overall}%`,height:'100%',borderRadius:3,background:gradeColor,transition:'width 1s'}}/>
+            </div>
+            <span style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)' }}>{subject.overall}%</span>
+          </div>
+        </td>
+        <td style={{ padding:'12px 8px',textAlign:'center' }}>
+          <span style={{
+            background:`${gradeColor}20`,color:gradeColor,
+            border:`1px solid ${gradeColor}40`,borderRadius:8,
+            padding:'3px 10px',fontSize:13,fontWeight:800,
+          }}>{subject.grade}</span>
+        </td>
+        <td style={{ padding:'12px 8px',textAlign:'center' }}>
+          <span style={{ fontSize:13,fontWeight:700,color:'var(--text-primary)' }}>{subject.gpa?.toFixed(2) ?? '—'}</span>
+        </td>
+        <td style={{ padding:'12px 8px',textAlign:'center' }}>
+          {open ? <ChevronUp size={16} color="var(--text-secondary)"/> : <ChevronDown size={16} color="var(--text-secondary)"/>}
+        </td>
+      </tr>
+
+      {/* Expanded Breakdown */}
+      {open && subject.assessments?.length > 0 && (
+        <tr style={{ background:'var(--bg-color)' }}>
+          <td colSpan={9} style={{ padding:'0 16px 12px 16px' }}>
+            <div style={{
+              background:'var(--bg-surface)',borderRadius:10,
+              border:'1px solid var(--border-color)',overflow:'hidden',marginTop:4,
+            }}>
+              <div className="table-responsive" style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}><table style={{ width:'100%',borderCollapse:'collapse',fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:`${dotColor}14`,borderBottom:'1px solid var(--border-color)' }}>
+                    {['Assessment','Type','Score','Max','Weight','Date'].map(h => (
+                      <th key={h} style={{ padding:'8px 12px',textAlign:'left',
+                        fontWeight:700,color:'var(--text-secondary)',fontSize:11,textTransform:'uppercase',letterSpacing:0.5 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {subject.assessments.map((a,i) => (
+                    <tr key={i} style={{ borderBottom:'1px solid var(--border-color)' }}>
+                      <td style={{ padding:'8px 12px',fontWeight:600,color:'var(--text-primary)' }}>{a.name}</td>
+                      <td style={{ padding:'8px 12px',color:'var(--text-secondary)' }}>{a.type}</td>
+                      <td style={{ padding:'8px 12px',fontWeight:700,color:dotColor }}>{a.score}</td>
+                      <td style={{ padding:'8px 12px',color:'var(--text-secondary)' }}>{a.max}</td>
+                      <td style={{ padding:'8px 12px',color:'var(--text-secondary)' }}>{a.weight}%</td>
+                      <td style={{ padding:'8px 12px',color:'var(--text-secondary)' }}>{a.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+/* ─── Custom Tooltip ──────────────────────────────────── */
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background:'var(--bg-surface)',border:'1px solid var(--border-color)',
+      borderRadius:10,padding:'10px 16px',boxShadow:'0 8px 24px rgba(0,0,0,0.3)',
+    }}>
+      <p style={{ margin:'0 0 4px',fontSize:12,color:'var(--text-secondary)',fontWeight:600 }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.dataKey} style={{ margin:0,fontSize:14,fontWeight:800,color:p.color }}>
+          GPA {p.value?.toFixed(2)}
+        </p>
+      ))}
     </div>
   );
 }
 
-// Compare to class average badge
-function VsClass({ score, classAvg }) {
-  if (classAvg === null || score === null) return null;
-  const diff = score - classAvg;
-  if (Math.abs(diff) < 1) return <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>≈ Class avg</span>;
-  if (diff > 0) return (
-    <span style={{ fontSize: '0.72rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '2px' }}>
-      <TrendingUp size={11} /> +{diff.toFixed(1)} vs class
-    </span>
-  );
+/* ─── Section Header ──────────────────────────────────── */
+
+function SectionHeader({ icon: Icon, title, subtitle }) {
   return (
-    <span style={{ fontSize: '0.72rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '2px' }}>
-      <TrendingDown size={11} /> {diff.toFixed(1)} vs class
-    </span>
+    <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16 }}>
+      <div style={{
+        width:36,height:36,borderRadius:10,
+        background:'#10B98118',display:'flex',alignItems:'center',justifyContent:'center',
+      }}>
+        <Icon size={18} color="var(--primary)"/>
+      </div>
+      <div>
+        <div style={{ fontWeight:700,fontSize:15,color:'var(--text-primary)' }}>{title}</div>
+        {subtitle && <div style={{ fontSize:12,color:'var(--text-secondary)' }}>{subtitle}</div>}
+      </div>
+    </div>
   );
 }
 
-export default function StudentGrades({ profile, enrollment }) {
-  const [subjectData, setSubjectData] = useState([]); // [{subjectId, subjectName, exams:[{...}], avg, classAvgs}]
-  const [loading, setLoading] = useState(true);
-  const [expandedSubject, setExpandedSubject] = useState(null);
+/* ─── Main Page ───────────────────────────────────────── */
 
-  useEffect(() => {
-    if (profile && enrollment) load();
-    else setLoading(false);
-  }, [profile, enrollment]);
+export default function StudentGrades() {
+  const grades = MOCK_GRADES;
 
-  async function load() {
-    setLoading(true);
-    try {
-      const studentId = profile.id;
-      const sectionId = enrollment.section_id;
-
-      // All exams in this section
-      const { data: examsRaw } = await supabase
-        .from('exams')
-        .select('id, title, date, max_score, subjects(id, name)')
-        .eq('section_id', sectionId)
-        .order('date', { ascending: true });
-
-      const exams = examsRaw || [];
-      if (exams.length === 0) { setSubjectData([]); setLoading(false); return; }
-
-      // This student's results
-      const { data: myResults } = await supabase
-        .from('exam_results')
-        .select('exam_id, score')
-        .eq('student_id', studentId)
-        .in('exam_id', exams.map(e => e.id));
-
-      // All class results for class avg
-      const { data: classResults } = await supabase
-        .from('exam_results')
-        .select('exam_id, score')
-        .in('exam_id', exams.map(e => e.id));
-
-      // Build class avg per exam
-      const classAvgMap = {};
-      exams.forEach(e => {
-        const scores = (classResults || []).filter(r => r.exam_id === e.id).map(r => Number(r.score));
-        classAvgMap[e.id] = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-      });
-
-      // My score map
-      const myScoreMap = {};
-      (myResults || []).forEach(r => { myScoreMap[r.exam_id] = Number(r.score); });
-
-      // Group by subject
-      const bySubject = {};
-      exams.forEach(exam => {
-        const subId = exam.subjects?.id;
-        const subName = exam.subjects?.name || 'Unknown';
-        if (!bySubject[subId]) bySubject[subId] = { subjectId: subId, subjectName: subName, exams: [] };
-        bySubject[subId].exams.push({
-          id: exam.id,
-          title: exam.title,
-          date: exam.date,
-          max_score: exam.max_score || 100,
-          myScore: myScoreMap[exam.id] ?? null,
-          classAvg: classAvgMap[exam.id],
-        });
-      });
-
-      const arr = Object.values(bySubject).map(sub => {
-        const scored = sub.exams.filter(e => e.myScore !== null);
-        const avg = scored.length ? scored.reduce((a, b) => a + b.myScore, 0) / scored.length : null;
-        const classOverallAvg = scored.length
-          ? scored.reduce((a, b) => a + (b.classAvg || 0), 0) / scored.length
-          : null;
-        return { ...sub, avg, classOverallAvg, scoredCount: scored.length };
-      });
-
-      // Sort: subjects with scores first
-      arr.sort((a, b) => (b.scoredCount - a.scoredCount));
-      setSubjectData(arr);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const allScores = subjectData.flatMap(s => s.exams.filter(e => e.myScore !== null).map(e => e.myScore));
-  const gpa = calcGPA(allScores);
-  const overallAvg = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : null;
-  const overallGrade = getLetterGrade(overallAvg);
-
-  if (loading) return <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>Loading grades…</div>;
+  const subjects = grades.subjects || [];
+  const semesterTrend = grades.semesterTrend || [];
+  const radarData = subjects.map(s => ({
+    subject: s.name?.length > 10 ? s.name.slice(0,10)+'…' : s.name,
+    score: s.overall,
+  }));
 
   return (
-    <div style={{ animation: 'fadeSlideIn 0.3s ease-out' }}>
+    <div style={{ padding:'24px',maxWidth:1200,margin:'0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>My Grades</h1>
-          <p>Your complete academic record for this semester.</p>
-        </div>
-        {/* GPA badge */}
-        {gpa && (
-          <div style={{ padding: '0.75rem 1.5rem', backgroundColor: `${overallGrade.color}15`, border: `1px solid ${overallGrade.color}40`, borderRadius: '0.75rem', textAlign: 'center' }}>
-            <p style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.2rem', color: 'var(--text-secondary)' }}>Semester GPA</p>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: overallGrade.color, lineHeight: 1 }}>{gpa}</div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: overallGrade.color }}>{overallGrade.letter}</div>
-          </div>
-        )}
+      <div style={{ marginBottom:28 }}>
+        <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:'var(--text-primary)',display:'flex',alignItems:'center',gap:10 }}>
+          <BarChart2 size={26} color="var(--primary)"/>Academic Grades
+        </h1>
+        <p style={{ margin:'4px 0 0',fontSize:14,color:'var(--text-secondary)' }}>
+          Semester {grades.semester || 'Spring 2026'} · {grades.academicYear || '2025–2026'}
+        </p>
       </div>
 
-      {subjectData.length === 0 ? (
-        <div className="glass-card" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-          <BarChart2 size={48} style={{ color: 'var(--text-secondary)', opacity: 0.3, margin: '0 auto 1rem', display: 'block' }} />
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No grades yet</h2>
-          <p>Your teachers haven't entered any results yet. Check back soon.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {subjectData.map(sub => {
-            const g = getLetterGrade(sub.avg);
-            const isExpanded = expandedSubject === sub.subjectId;
-            return (
-              <div key={sub.subjectId} className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-                {/* Subject header row */}
-                <button
-                  onClick={() => setExpandedSubject(isExpanded ? null : sub.subjectId)}
-                  style={{
-                    width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '1rem',
-                    padding: '1.1rem 1.5rem', fontFamily: 'inherit', textAlign: 'left',
-                    borderLeft: `4px solid ${g.color}`,
-                  }}
-                >
-                  {/* Subject name */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{sub.subjectName}</span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                        {sub.scoredCount}/{sub.exams.length} exam{sub.exams.length !== 1 ? 's' : ''} graded
-                      </span>
-                    </div>
-                    <ScoreBar score={sub.avg || 0} color={g.color} />
-                  </div>
-                  {/* Avg + Grade badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                    <VsClass score={sub.avg} classAvg={sub.classOverallAvg} />
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: g.color, lineHeight: 1 }}>
-                        {sub.avg !== null ? sub.avg.toFixed(1) : '—'}
-                      </div>
-                    </div>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: `${g.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: g.color, fontSize: '0.9rem' }}>
-                      {g.letter}
-                    </div>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                      ▾
-                    </span>
-                  </div>
-                </button>
+      {/* Top Stats Row */}
+      <div className="glass-card" style={{ borderRadius:16,padding:'24px',marginBottom:24 }}>
+        <div style={{ display:'flex',gap:32,alignItems:'center',flexWrap:'wrap' }}>
+          {/* GPA Ring */}
+          <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:8 }}>
+            <GpaRing gpa={grades.gpa ?? 3.72} size={120}/>
+            <span style={{ fontSize:12,color:'var(--text-secondary)',fontWeight:600 }}>Overall GPA</span>
+          </div>
 
-                {/* Expanded exam rows */}
-                {isExpanded && (
-                  <div style={{ borderTop: '1px solid var(--border-color)' }}>
-                    {sub.exams.map((exam, idx) => {
-                      const eg = getLetterGrade(exam.myScore);
-                      const isPast = new Date(exam.date) < new Date();
-                      return (
-                        <div
-                          key={exam.id}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '1rem',
-                            padding: '0.9rem 1.5rem 0.9rem 2rem',
-                            borderBottom: idx < sub.exams.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                            backgroundColor: 'rgba(255,255,255,0.01)',
-                          }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                              <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{exam.title}</span>
-                              {!isPast && <span className="badge badge-yellow" style={{ fontSize: '0.65rem' }}>Upcoming</span>}
-                            </div>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{exam.date}</span>
-                          </div>
+          <div style={{ width:'1px',height:80,background:'var(--border-color)' }}/>
 
-                          {/* Class average comparison */}
-                          {exam.classAvg !== null && (
-                            <div style={{ textAlign: 'center', minWidth: '70px' }}>
-                              <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', margin: '0 0 0.15rem' }}>Class avg</p>
-                              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{exam.classAvg.toFixed(1)}</span>
-                            </div>
-                          )}
-
-                          {/* Score bar + number */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '160px' }}>
-                            <ScoreBar score={exam.myScore !== null ? exam.myScore : 0} max={exam.max_score} color={eg.color} />
-                            <span style={{ fontWeight: 700, color: eg.color, minWidth: '32px', textAlign: 'right', fontSize: '0.9rem' }}>
-                              {exam.myScore !== null ? exam.myScore : '—'}
-                            </span>
-                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: `${eg.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: eg.color, fontSize: '0.72rem', flexShrink: 0 }}>
-                              {eg.letter}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+          {/* Stat Cards */}
+          {[
+            { label:'Average Score', value:`${grades.avgScore ?? 87}%`, icon:Target, color:'#10B981' },
+            { label:'Class Rank', value:`#${grades.rank ?? 4}`, icon:Award, color:'#F59E0B' },
+            { label:'Trend', value: grades.trend ?? '+0.12', icon:TrendingUp, color: (grades.trend ?? '+0.12').startsWith('+') ? '#10B981' : '#EF4444' },
+          ].map(({ label,value,icon:Icon,color }) => (
+            <div key={label} style={{ display:'flex',flexDirection:'column',gap:6 }}>
+              <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+                <div style={{
+                  width:40,height:40,borderRadius:10,
+                  background:`${color}18`,display:'flex',alignItems:'center',justifyContent:'center',
+                }}>
+                  <Icon size={18} color={color}/>
+                </div>
+                <div>
+                  <div style={{ fontSize:22,fontWeight:800,color:'var(--text-primary)' }}>{value}</div>
+                  <div style={{ fontSize:11,color:'var(--text-secondary)',fontWeight:600 }}>{label}</div>
+                </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* Charts Row */}
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:24 }}>
+        {/* Semester GPA Trend */}
+        <div className="glass-card" style={{ borderRadius:16,padding:'20px' }}>
+          <SectionHeader icon={TrendingUp} title="Semester GPA Trend" subtitle="Your GPA progression over time"/>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={semesterTrend} margin={{ top:5,right:16,left:-10,bottom:5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false}/>
+              <XAxis dataKey="semester" tick={{ fontSize:11,fill:'var(--text-secondary)' }} axisLine={false} tickLine={false}/>
+              <YAxis domain={[2.0,4.0]} tick={{ fontSize:11,fill:'var(--text-secondary)' }} axisLine={false} tickLine={false}/>
+              <Tooltip content={<CustomTooltip/>}/>
+              <Line type="monotone" dataKey="gpa" stroke="#10B981" strokeWidth={3}
+                dot={{ fill:'#10B981',r:5,strokeWidth:0 }}
+                activeDot={{ r:7,fill:'#10B981' }}/>
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Radar Chart */}
+        <div className="glass-card" style={{ borderRadius:16,padding:'20px' }}>
+          <SectionHeader icon={Star} title="Subject Performance Map" subtitle="Visual breakdown by subject"/>
+          <ResponsiveContainer width="100%" height={180}>
+            <RadarChart data={radarData} margin={{ top:0,right:20,bottom:0,left:20 }}>
+              <PolarGrid stroke="var(--border-color)"/>
+              <PolarAngleAxis dataKey="subject" tick={{ fontSize:10,fill:'var(--text-secondary)' }}/>
+              <PolarRadiusAxis angle={90} domain={[0,100]} tick={{ fontSize:9,fill:'var(--text-secondary)' }} tickCount={4}/>
+              <Radar name="Score" dataKey="score" stroke="#10B981" fill="#10B981" fillOpacity={0.25} strokeWidth={2}/>
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Grade Table */}
+      <div className="glass-card" style={{ borderRadius:16,overflow:'hidden' }}>
+        <div style={{ padding:'20px 20px 0' }}>
+          <SectionHeader icon={BarChart2} title="Subject Grade Breakdown" subtitle="Click any row to see detailed assessment breakdown"/>
+        </div>
+        <div style={{ overflowX:'auto' }}>
+          <div className="table-responsive" style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}><table style={{ width:'100%',borderCollapse:'collapse',minWidth:780 }}>
+            <thead>
+              <tr style={{ borderBottom:'1px solid var(--border-color)',background:'var(--bg-color)' }}>
+                {['Subject','Quiz Avg','Assign. Avg','Mid-Term','Final Exam','Overall','Grade','GPA',''].map((h,i) => (
+                  <th key={i} style={{
+                    padding:'12px 8px',fontSize:11,fontWeight:700,
+                    color:'var(--text-secondary)',textTransform:'uppercase',
+                    letterSpacing:0.6,textAlign: i===0?'left':'center',
+                    paddingLeft: i===0?16:8,
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {subjects.map((s,i) => <GradeRow key={s.name} subject={s} idx={i}/>)}
+            </tbody>
+          </table></div>
+        </div>
+      </div>
     </div>
   );
 }
