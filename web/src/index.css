@@ -524,3 +524,73 @@ input:focus, select:focus {
     grid-template-columns: 1fr !important;
   }
 }
+/* --- StudentMessages Mobile Fix --- */
+@media (max-width: 768px) {
+  .messages-container {
+    position: relative;
+  }
+  .hidden-on-mobile {
+    display: none !important;
+  }
+  .messages-left {
+    width: 100% !important;
+    border-right: none !important;
+  }
+  .messages-right {
+    width: 100% !important;
+  }
+  .mobile-back-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+/* --- Deep Mobile Optimization Utilities --- */
+@media (max-width: 768px) {
+  .mobile-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .mobile-stack > * {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .mobile-wrap {
+    flex-wrap: wrap !important;
+  }
+  .mobile-hide {
+    display: none !important;
+  }
+  .glass-card {
+    padding: 1rem !important; /* Reclaim space */
+  }
+  /* Ensure header sizes scale down */
+  h1, h2, .hero-title {
+    font-size: 1.5rem !important;
+  }
+  .hero-subtitle {
+    font-size: 0.9rem !important;
+  }
+  /* Fix avatars inside stacked layouts */
+  .mobile-stack > .avatar-container {
+    width: auto !important; 
+    align-self: center !important;
+    margin-bottom: 0.5rem;
+  }
+  /* Fix gap rendering on dense screens */
+  .mobile-gap-sm {
+    gap: 0.5rem !important;
+  }
+}
+/* --- Additional Grid Overrides --- */
+@media (max-width: 768px) {
+  [style*="1fr auto"] {
+    grid-template-columns: 1fr !important;
+  }
+  .mobile-scroll-x {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+  }
+}

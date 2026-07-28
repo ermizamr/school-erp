@@ -82,7 +82,7 @@ function ResourceCard({ material }) {
       }}
     >
       {/* Top banner */}
-      <div style={{
+      <div className="mobile-wrap"  style={{
         background: cfg.bg, padding: '20px 20px 14px 20px',
         display: 'flex', alignItems: 'center', gap: 12,
         borderBottom: '1px solid var(--border-color)',

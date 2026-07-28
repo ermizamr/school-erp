@@ -105,7 +105,7 @@ function UpcomingExamCard({ exam }) {
     : { color:'#10B981', bg:'#10B98118', border:'#10B98140' };
 
   return (
-    <div className="glass-card" style={{
+    <div className="glass-card mobile-wrap" style={{
       borderRadius:14,padding:'16px 20px',
       display:'flex',alignItems:'center',gap:16,
       transition:'box-shadow 0.2s,transform 0.2s',
@@ -158,7 +158,7 @@ function PastResultCard({ exam }) {
 
   return (
     <div className="glass-card" style={{ borderRadius:14,overflow:'hidden',borderLeft:`3px solid ${gradeColor}` }}>
-      <div
+      <div className="mobile-wrap" 
         style={{ padding:'16px 20px',display:'flex',alignItems:'center',gap:16,cursor:'pointer' }}
         onClick={() => setOpen(v=>!v)}
       >
@@ -183,7 +183,7 @@ function PastResultCard({ exam }) {
           </div>
         </div>
 
-        <div style={{ display:'flex',alignItems:'center',gap:12,flexShrink:0 }}>
+        <div className="mobile-wrap"  style={{ display:'flex',alignItems:'center',gap:12,flexShrink:0 }}>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontSize:20,fontWeight:800,color:'var(--text-primary)' }}>
               {exam.score}/{exam.maxScore}
@@ -360,7 +360,7 @@ export default function StudentExams() {
       </div>
 
       {/* Tabs */}
-      <div style={{
+      <div className="mobile-scroll-x"  style={{
         display:'flex',gap:4,marginBottom:24,
         background:'var(--bg-surface)',borderRadius:12,
         padding:4,width:'fit-content',border:'1px solid var(--border-color)',

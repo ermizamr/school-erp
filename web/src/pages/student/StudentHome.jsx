@@ -110,7 +110,7 @@ function PriorityBadge({ priority }) {
 // ── Section Header ────────────────────────────────────────────────────────────
 function SectionHeader({ title, action, onAction }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+    <div className="mobile-wrap"  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
       <h2 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>{title}</h2>
       {action && (
         <button onClick={onAction} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', borderRadius: '0.375rem' }}>
@@ -231,7 +231,7 @@ export default function StudentHome({ student = MOCK_STUDENT, setActiveTab }) {
           <SectionHeader title="📅 Today's Schedule" action="View Timetable" onAction={() => setActiveTab('calendar')} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {MOCK_SCHEDULE.map(cls => (
-              <div key={cls.id} style={{
+              <div className="mobile-wrap"  key={cls.id} style={{
                 display: 'flex', alignItems: 'center', gap: '1rem',
                 padding: '0.875rem 1rem', borderRadius: '0.75rem',
                 border: cls.status === 'ongoing' ? '1px solid rgba(16,185,129,0.3)' : '1px solid var(--border-color)',
@@ -313,14 +313,14 @@ export default function StudentHome({ student = MOCK_STUDENT, setActiveTab }) {
                 padding: '0.875rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)',
                 background: 'var(--bg-color)',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                <div className="mobile-wrap"  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.4rem' }}>
                   <div style={{ fontWeight: 700, fontSize: '0.845rem', flex: 1 }}>{asn.title}</div>
                   <PriorityBadge priority={asn.priority} />
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                   {asn.subject} · {asn.teacher}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="mobile-wrap"  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     <Clock size={12} color="var(--text-secondary)" />
                     <span style={{ fontSize: '0.77rem', color: daysUntil(asn.due_date) <= 1 ? '#ef4444' : 'var(--text-secondary)', fontWeight: daysUntil(asn.due_date) <= 1 ? 700 : 400 }}>
@@ -349,7 +349,7 @@ export default function StudentHome({ student = MOCK_STUDENT, setActiveTab }) {
           <SectionHeader title="🎓 Upcoming Exams" action="View All" onAction={() => setActiveTab('exams')} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {upcomingExams.slice(0, 5).map((ex, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 0.875rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)' }}>
+              <div className="mobile-wrap"  key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 0.875rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)' }}>
                 <div style={{ textAlign: 'center', minWidth: 44, background: 'rgba(239,68,68,0.1)', borderRadius: '0.5rem', padding: '0.375rem' }}>
                   <div style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase' }}>{new Date(ex.date).toLocaleString('en', { month: 'short' })}</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{new Date(ex.date).getDate()}</div>
@@ -383,7 +383,7 @@ export default function StudentHome({ student = MOCK_STUDENT, setActiveTab }) {
               const pct = (g.score / g.max) * 100;
               return (
                 <div key={i} style={{ padding: '0.75rem 0.875rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'var(--bg-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <div className="mobile-wrap"  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                     <div>
                       <span style={{ fontWeight: 700, fontSize: '0.845rem' }}>{g.subject}</span>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginLeft: '0.5rem' }}>· {g.type}</span>
@@ -406,7 +406,7 @@ export default function StudentHome({ student = MOCK_STUDENT, setActiveTab }) {
         {/* Attendance Chart */}
         <div className="glass-card" style={{ padding: '1.25rem' }}>
           <SectionHeader title="📊 Attendance — Last 6 Months" action="Details" onAction={() => setActiveTab('attendance')} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="mobile-wrap"  style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
             <Ring pct={MOCK_ATTENDANCE.overall_percentage} size={72} color={attColor}>
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: attColor }}>{MOCK_ATTENDANCE.overall_percentage}%</span>
             </Ring>
@@ -448,14 +448,14 @@ export default function StudentHome({ student = MOCK_STUDENT, setActiveTab }) {
                 padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${ann.read ? 'var(--border-color)' : `${typeColor}30`}`,
                 background: ann.read ? 'var(--bg-color)' : `${typeColor}08`, cursor: 'pointer',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div className="mobile-wrap"  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <span style={{ fontWeight: ann.read ? 600 : 800, fontSize: '0.845rem', flex: 1 }}>{ann.title}</span>
                   {!ann.read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: typeColor, flexShrink: 0, marginTop: 4 }} />}
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {ann.body}
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="mobile-wrap"  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.72rem', color: typeColor, fontWeight: 700, background: `${typeColor}15`, padding: '0.1rem 0.45rem', borderRadius: '0.25rem' }}>
                     {ann.type.toUpperCase()}
                   </span>

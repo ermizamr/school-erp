@@ -91,7 +91,7 @@ function SubmitModal({ assignment, onClose, onSubmit }) {
         border:'1px solid var(--border-color)',
       }}>
         {/* Header */}
-        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
+        <div className="mobile-wrap"  style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
           <div>
             <h2 style={{ margin:0,fontSize:18,fontWeight:800,color:'var(--text-primary)' }}>
               Submit Assignment
@@ -320,7 +320,7 @@ function AssignmentCard({ assignment, onSubmit }) {
 
             {/* Submission History */}
             {assignment.submittedAt && (
-              <div style={{
+              <div className="mobile-scroll-x"  style={{
                 display:'flex',alignItems:'center',gap:6,fontSize:12,
                 color:'var(--text-secondary)',padding:'6px 12px',
                 background:'var(--bg-color)',borderRadius:8,width:'fit-content',
@@ -362,7 +362,7 @@ function AssignmentCard({ assignment, onSubmit }) {
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
-    <div className="glass-card" style={{
+    <div className="glass-card mobile-wrap" style={{
       borderRadius:14,padding:'18px 20px',display:'flex',
       alignItems:'center',gap:16,flex:1,minWidth:140,
     }}>
@@ -455,7 +455,7 @@ export default function StudentAssignments() {
       </div>
 
       {/* Tabs */}
-      <div style={{
+      <div className="mobile-scroll-x"  style={{
         display:'flex',gap:4,marginBottom:20,
         background:'var(--bg-surface)',borderRadius:12,
         padding:4,width:'fit-content',border:'1px solid var(--border-color)',

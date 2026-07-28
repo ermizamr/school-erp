@@ -80,13 +80,13 @@ export default function StudentMessages() {
   };
 
   return (
-    <div style={{
-      display: 'flex', flexWrap: 'wrap', minHeight: 'calc(100vh - 56px)',
+    <div className="messages-container" style={{
+      display: 'flex', height: 'calc(100vh - 56px)',
       background: 'var(--bg-color)', overflow: 'hidden',
     }}>
       {/* ─── Left: conversation list ─── */}
-      <div style={{
-        flex: '1 1 320px', minWidth: 320,
+      <div className={`messages-left ${activeCid ? 'hidden-on-mobile' : ''}`} style={{
+        width: 320, flexShrink: 0,
         borderRight: '1px solid var(--border-color)',
         display: 'flex', flexDirection: 'column',
         background: 'var(--bg-surface)',
@@ -157,7 +157,7 @@ export default function StudentMessages() {
               >
                 <Avatar name={c.name} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
+                  <div className="mobile-wrap"  style={{
                     display: 'flex', justifyContent: 'space-between',
                     alignItems: 'baseline', marginBottom: 2,
                   }}>
@@ -175,7 +175,7 @@ export default function StudentMessages() {
                     fontSize: 11, color: 'var(--text-secondary)',
                     marginBottom: 3,
                   }}>{c.role}</div>
-                  <div style={{
+                  <div className="mobile-wrap"  style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <span style={{
@@ -201,8 +201,8 @@ export default function StudentMessages() {
 
       {/* ─── Right: message thread ─── */}
       {!activeConvo ? (
-        <div style={{
-          flex: '2 1 400px', minWidth: 320, display: 'flex', flexDirection: 'column',
+        <div className={`messages-right ${!activeCid ? 'hidden-on-mobile' : ''}`} style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           gap: 16, color: 'var(--text-secondary)',
         }}>
@@ -215,13 +215,26 @@ export default function StudentMessages() {
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div className={`messages-right ${!activeCid ? 'hidden-on-mobile' : ''}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           {/* Thread header */}
-          <div style={{
+          <div className="mobile-wrap"  style={{
             padding: '14px 24px', borderBottom: '1px solid var(--border-color)',
             display: 'flex', alignItems: 'center', gap: 12,
             background: 'var(--bg-surface)',
           }}>
+            <button
+              className="mobile-back-btn"
+              onClick={() => setActiveCid(null)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-secondary)', display: 'none',
+                padding: '4px', marginRight: '4px',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
             <Avatar name={activeConvo.name} size={40} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>

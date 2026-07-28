@@ -57,7 +57,7 @@ export default function StudentSettings({ student }) {
         <SectionHeader icon={Bell} title="Notification Preferences" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {notifItems.map((item, i) => (
-            <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 0', borderBottom: i < notifItems.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+            <div className="mobile-wrap"  key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 0', borderBottom: i < notifItems.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.label}</div>
                 <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>{item.sub}</div>
@@ -149,21 +149,21 @@ export default function StudentSettings({ student }) {
       <div className="glass-card" style={{ border: '1px solid rgba(239,68,68,0.15)' }}>
         <SectionHeader icon={Shield} title="Privacy & Security" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="mobile-wrap"  style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Two-Factor Authentication</div>
               <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>Add an extra layer of security to your account</div>
             </div>
             <button style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', padding: '0.375rem 0.875rem' }}>Enable</button>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 0', borderBottom: '1px solid var(--border-color)' }}>
+          <div className="mobile-wrap"  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 0', borderBottom: '1px solid var(--border-color)' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Show my profile to other students</div>
               <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)' }}>Allow classmates to see your name and grade</div>
             </div>
             <Toggle checked={true} onChange={() => {}} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 0' }}>
+          <div className="mobile-wrap"  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem 0' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Email activity digest</div>
               <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)' }}>Receive a weekly summary of your activity</div>

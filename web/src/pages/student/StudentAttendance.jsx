@@ -43,7 +43,7 @@ function AttendanceRing({ pct, size = 100 }) {
 
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
-    <div className="glass-card" style={{
+    <div className="glass-card mobile-wrap" style={{
       borderRadius:14,padding:'18px 20px',display:'flex',
       alignItems:'center',gap:16,flex:1,minWidth:130,
     }}>
@@ -197,7 +197,7 @@ export default function StudentAttendance() {
 
       {/* At-Risk Banner */}
       {isAtRisk && (
-        <div style={{
+        <div className="mobile-wrap"  style={{
           background:'#EF444412',border:'1px solid #EF444440',
           borderRadius:12,padding:'14px 20px',marginBottom:20,
           display:'flex',alignItems:'center',gap:12,

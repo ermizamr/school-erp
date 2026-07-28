@@ -80,7 +80,7 @@ function SubjectCard({ subject, index }) {
     >
       {/* Card Header */}
       <div style={{ padding: '20px 20px 16px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div className="mobile-wrap"  style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
             <div style={{
               width: 48, height: 48, borderRadius: 14,
@@ -190,7 +190,7 @@ function SubjectCard({ subject, index }) {
                 {subjectMaterials.length === 0 ? (
                   <EmptyState message="No materials uploaded yet" />
                 ) : subjectMaterials.map(mat => (
-                  <div key={mat.id} style={{
+                  <div className="mobile-wrap"  key={mat.id} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '10px 14px', background: 'var(--bg-color)',
                     borderRadius: 10, border: '1px solid var(--border-color)',
@@ -210,7 +210,7 @@ function SubjectCard({ subject, index }) {
                 {subjectAssignments.length === 0 ? (
                   <EmptyState message="No assignments for this subject" />
                 ) : subjectAssignments.map(a => (
-                  <div key={a.id} style={{
+                  <div className="mobile-wrap"  key={a.id} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '10px 14px', background: 'var(--bg-color)',
                     borderRadius: 10, border: '1px solid var(--border-color)',
@@ -230,7 +230,7 @@ function SubjectCard({ subject, index }) {
                 {subjectExams.length === 0 ? (
                   <EmptyState message="No upcoming exams scheduled" />
                 ) : subjectExams.map(ex => (
-                  <div key={ex.id} style={{
+                  <div className="mobile-wrap"  key={ex.id} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '10px 14px', background: 'var(--bg-color)',
                     borderRadius: 10, border: '1px solid var(--border-color)',

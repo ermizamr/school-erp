@@ -139,7 +139,7 @@ export default function StudentCalendar() {
           border: '1px solid var(--border-color)',
         }}>
           {/* Nav */}
-          <div style={{
+          <div className="mobile-wrap"  style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '18px 22px',
             borderBottom: '1px solid var(--border-color)',
@@ -155,7 +155,7 @@ export default function StudentCalendar() {
                 <ChevronRight size={18} />
               </button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="mobile-wrap"  style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               {/* Legend */}
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {Object.keys(EVENT_CONFIG).map(t => <LegendChip key={t} type={t} />)}

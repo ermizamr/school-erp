@@ -98,7 +98,7 @@ function NotificationPanel({ notifications, onClose }) {
       borderRadius: '0.875rem', boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
       zIndex: 200, overflow: 'hidden',
     }}>
-      <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="mobile-wrap"  style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Notifications</span>
           {unread > 0 && <span style={{ marginLeft: '0.5rem', background: '#ef4444', color: '#fff', fontSize: '0.7rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '1rem' }}>{unread}</span>}

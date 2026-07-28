@@ -47,7 +47,7 @@ export default function StudentHostel({ student }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Room card */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.08))', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '1rem', padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div className="mobile-wrap"  style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.08))', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '1rem', padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         <div style={{ width: 64, height: 64, borderRadius: '1rem', background: 'rgba(16,185,129,0.15)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Home size={32} />
         </div>

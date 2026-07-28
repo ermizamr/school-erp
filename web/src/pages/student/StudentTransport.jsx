@@ -32,7 +32,7 @@ export default function StudentTransport({ student }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.08))', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '1rem', padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div className="mobile-wrap"  style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.08))', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '1rem', padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         <div style={{ width: 64, height: 64, borderRadius: '1rem', background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Bus size={32} />
         </div>
@@ -83,7 +83,7 @@ export default function StudentTransport({ student }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', paddingLeft: '1.5rem' }}>
           <div style={{ position: 'absolute', left: '0.5rem', top: 12, bottom: 12, width: 2, background: 'linear-gradient(to bottom, var(--primary), #3b82f6)', borderRadius: 2 }} />
           {t.stops.map((stop, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', position: 'relative' }}>
+            <div className="mobile-wrap"  key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', position: 'relative' }}>
               <div style={{ position: 'absolute', left: -9, width: 14, height: 14, borderRadius: '50%', background: stop.type === 'school' ? 'var(--primary)' : 'var(--bg-surface)', border: `2px solid ${stop.type === 'school' ? 'var(--primary)' : '#3b82f6'}`, zIndex: 1, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: stop.type === 'school' ? 800 : 600, fontSize: '0.875rem', color: stop.type === 'school' ? 'var(--primary)' : 'var(--text-primary)' }}>
